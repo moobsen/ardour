@@ -63,8 +63,9 @@ namespace mpl = boost::mpl;
 namespace TransportState
 {
 	/* events */
-	struct play {};
+	struct play { play(int foo = 1) : _foo (foo) {}; int _foo; };
 	struct stop {};
+	struct locate { locate (samplepos_t target) : _target (target) ; samplepos_t _target; };
 
 	/* front-end: define the FSM structure  */
 	struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
@@ -104,14 +105,15 @@ namespace TransportState
 		typedef Stopped initial_state;
 
 		/* transition actions */
-		void start_playback (play const&)
+		void start_playback (play const& p)
 		{
-			std::cout << "player::start_playback\n";
+			std::cout << "player::start_playback" << p._foo << "\n";
 		}
 
-		void stop_playback (stop const&)
+		void stop_playback (stop const& s)
 		{
 			std::cout << "player::stop_playback\n";
+			// _session->realtime_stop (s.abort, s.clear_state); // <<< somehow
 		}
 
 		typedef TransportFSM _t; // makes transition table cleaner
@@ -133,7 +135,7 @@ namespace TransportState
 	{
 		transport_fsm t;
 		t.start ();
-		t.process_event (play());
+		t.process_event (play(2));
 		t.process_event (stop());
 		t.stop();
 	}
@@ -148,6 +150,8 @@ void
 Session::process (pframes_t nframes)
 {
 	samplepos_t transport_at_start = _transport_sample;
+
+	// ::TransportState::test(); // hackedy-hack
 
 	_silent = false;
 
