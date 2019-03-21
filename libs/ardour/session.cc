@@ -106,6 +106,7 @@
 #include "ardour/speakers.h"
 #include "ardour/tempo.h"
 #include "ardour/ticker.h"
+#include "ardour/transport_fsm.h"
 #include "ardour/transport_master.h"
 #include "ardour/track.h"
 #include "ardour/types_convert.h"
@@ -241,6 +242,7 @@ Session::Session (AudioEngine &eng,
 	, lua (lua_newstate (&PBD::ReallocPool::lalloc, &_mempool))
 	, _n_lua_scripts (0)
 	, _butler (new Butler (*this))
+	, _transport_fsm (new TransportSM (*this))
 	, _post_transport_work (0)
 	, _locations (new Locations (*this))
 	, _ignore_skips_updates (false)
@@ -332,6 +334,8 @@ Session::Session (AudioEngine &eng,
 
 	init_name_id_counter (1); // reset for new sessions, start at 1
 	VCA::set_next_vca_number (1); // reset for new sessions, start at 1
+
+	_transport_fsm->start ();
 
 	pre_engine_init (fullpath); // sets _is_new
 
@@ -869,6 +873,10 @@ Session::destroy ()
 	DEBUG_TRACE (DEBUG::Destruction, "delete selection\n");
 	delete _selection;
 	_selection = 0;
+
+	_transport_fsm->stop ();
+	delete _transport_fsm;
+	_transport_fsm = 0;
 
 	DEBUG_TRACE (DEBUG::Destruction, "Session::destroy() done\n");
 

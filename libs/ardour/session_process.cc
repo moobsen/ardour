@@ -22,9 +22,6 @@
 #include <algorithm>
 #include <unistd.h>
 
-#include <boost/msm/back/state_machine.hpp>
-#include <boost/msm/front/state_machine_def.hpp>
-
 #include "pbd/error.h"
 #include "pbd/enumwriter.h"
 
@@ -41,6 +38,7 @@
 #include "ardour/process_thread.h"
 #include "ardour/scene_changer.h"
 #include "ardour/session.h"
+#include "ardour/transport_fsm.h"
 #include "ardour/transport_master.h"
 #include "ardour/transport_master_manager.h"
 #include "ardour/ticker.h"
@@ -56,91 +54,6 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace std;
 
-/* state machine */
-namespace msm = boost::msm;
-namespace mpl = boost::mpl;
-
-namespace TransportState
-{
-	/* events */
-	struct play { play(int foo = 1) : _foo (foo) {}; int _foo; };
-	struct stop {};
-	struct locate { locate (samplepos_t target) : _target (target) ; samplepos_t _target; };
-
-	/* front-end: define the FSM structure  */
-	struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
-	{
-
-		/* FSM states */
-		struct Stopped : public msm::front::state<>
-		{
-			template <class Event,class FSM> void
-				on_entry (Event const&, FSM&)
-				{
-					std::cout << "entering: Stopped" << std::endl;
-				}
-			template <class Event,class FSM> void
-				on_exit (Event const&, FSM&)
-				{
-					std::cout << "leaving: Stopped" << std::endl;
-				}
-		};
-
-		struct Playing : public msm::front::state<>
-		{
-			template <class Event,class FSM> void
-				on_entry (Event const&, FSM&)
-				{
-					std::cout << "entering: Playing" << std::endl;
-				}
-
-			template <class Event,class FSM> void
-				on_exit (Event const&, FSM&)
-				{
-					std::cout << "leaving: Playing" << std::endl;
-				}
-		};
-
-		/* the initial state */
-		typedef Stopped initial_state;
-
-		/* transition actions */
-		void start_playback (play const& p)
-		{
-			std::cout << "player::start_playback" << p._foo << "\n";
-		}
-
-		void stop_playback (stop const& s)
-		{
-			std::cout << "player::stop_playback\n";
-			// _session->realtime_stop (s.abort, s.clear_state); // <<< somehow
-		}
-
-		typedef TransportFSM _t; // makes transition table cleaner
-
-		struct transition_table : mpl::vector<
-			//      Start     Event         Next      Action				 Guard
-			//    +---------+-------------+---------+---------------------+----------------------+
-			a_row < Stopped , play        , Playing , &_t::start_playback                        >,
-			 _row < Stopped , stop        , Stopped                                              >,
-			//    +---------+-------------+---------+---------------------+----------------------+
-			a_row < Playing , stop        , Stopped , &_t::stop_playback                         >
-			//    +---------+-------------+---------+---------------------+----------------------+
-			> {};
-	};
-
-	typedef msm::back::state_machine<TransportFSM> transport_fsm;
-
-	void test()
-	{
-		transport_fsm t;
-		t.start ();
-		t.process_event (play(2));
-		t.process_event (stop());
-		t.stop();
-	}
-
-};
 
 /** Called by the audio engine when there is work to be done with JACK.
  * @param nframes Number of samples to process.
@@ -151,7 +64,7 @@ Session::process (pframes_t nframes)
 {
 	samplepos_t transport_at_start = _transport_sample;
 
-	// ::TransportState::test(); // hackedy-hack
+	//_transport_fsm->process_event (TransportStateMachine::play (2));
 
 	_silent = false;
 

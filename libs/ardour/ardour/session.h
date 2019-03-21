@@ -155,6 +155,7 @@ class Source;
 class Speakers;
 class TempoMap;
 class TransportMaster;
+class TransportSM;
 class Track;
 class UI_TransportMaster;
 class VCAManager;
@@ -1416,6 +1417,9 @@ private:
 	void try_run_lua (pframes_t);
 
 	Butler* _butler;
+
+	friend class TransportSM;
+	TransportSM* _transport_fsm;
 
 	static const PostTransportWork ProcessCannotProceedMask =
 		PostTransportWork (
