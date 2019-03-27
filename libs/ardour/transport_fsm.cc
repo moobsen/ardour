@@ -21,22 +21,29 @@
 
 using namespace ARDOUR;
 
-TransportSM::TransportSM (Session& s)
-	: SessionHandleRef (s)
+TransportSM::TransportSM (TransportAPI& a)
+	: api (a)
 {}
 
 /* transition actions */
 
 void
-TransportSM::start_playback (TransportStateMachine::play const& p)
+TransportSM::start_playback (TransportStateMachine::start const& p)
 {
-	std::cout << "player::start_playback" << p._foo << "\n";
-	process_event (TransportStateMachine::stop ()); // test if recusion is allowed
+	std::cout << "player::start_playback" << std::endl;
+	api.start_transport();
 }
 
 void
 TransportSM::stop_playback (TransportStateMachine::stop const& s)
 {
-	std::cout << "player::stop_playback\n";
-	//_session.realtime_stop (s.abort, s.clear_state);
+	std::cout << "player::stop_playback" << std::endl;
+	api.stop_transport (s.abort, s.clear_state);
+}
+
+void
+TransportSM::start_locate (TransportStateMachine::locate const& l)
+{
+	std::cout << "player::start_locate\n";
+	api.locate (l.target, l.with_roll, l.with_flush, l.with_loop, l.force);
 }

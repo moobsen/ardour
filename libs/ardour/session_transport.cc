@@ -47,6 +47,7 @@
 #include "ardour/profile.h"
 #include "ardour/scene_changer.h"
 #include "ardour/session.h"
+#include "ardour/transport_fsm.h"
 #include "ardour/transport_master.h"
 #include "ardour/transport_master_manager.h"
 #include "ardour/tempo.h"
@@ -461,7 +462,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 				_requested_return_sample = destination_sample;
 			}
 
-			stop_transport (abort);
+			_transport_fsm->process_event (TransportStateMachine::stop (abort, false));
 		}
 
 	} else if (transport_stopped() && speed == 1.0) {
@@ -498,7 +499,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 			_engine.transport_start ();
 			_count_in_once = false;
 		} else {
-			start_transport ();
+			_transport_fsm->process_event (TransportStateMachine::start());
 		}
 
 	} else {
@@ -745,7 +746,7 @@ Session::maybe_stop (samplepos_t limit)
 		if (synced_to_engine () && config.get_jack_time_master ()) {
 			_engine.transport_stop ();
 		} else if (!synced_to_engine ()) {
-			stop_transport ();
+			_transport_fsm->process_event (TransportStateMachine::stop());
 		}
 		return true;
 	}

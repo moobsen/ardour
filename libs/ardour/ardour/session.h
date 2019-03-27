@@ -76,7 +76,7 @@
 #include "ardour/presentation_info.h"
 #include "ardour/route.h"
 #include "ardour/route_graph.h"
-
+#include "ardour/transport_api.h"
 
 class XMLTree;
 class XMLNode;
@@ -175,7 +175,7 @@ private:
 };
 
 /** Ardour Session */
-class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionList, public SessionEventManager
+class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionList, public SessionEventManager, public TransportAPI
 {
 private:
 
@@ -1219,6 +1219,12 @@ protected:
 	friend class Route;
 	void update_latency_compensation (bool force = false);
 
+	/* transport API */
+
+	void locate (samplepos_t, bool with_roll, bool with_flush, bool with_loop=false, bool force=false, bool with_mmc=true);
+	void stop_transport (bool abort = false, bool clear_state = false);
+	void start_transport ();
+
 private:
 	int  create (const std::string& mix_template, BusProfile*);
 	void destroy ();
@@ -1418,7 +1424,6 @@ private:
 
 	Butler* _butler;
 
-	friend class TransportSM;
 	TransportSM* _transport_fsm;
 
 	static const PostTransportWork ProcessCannotProceedMask =
@@ -1663,12 +1668,10 @@ private:
 	void overwrite_some_buffers (Track *);
 	void flush_all_inserts ();
 	int  micro_locate (samplecnt_t distance);
-	void locate (samplepos_t, bool with_roll, bool with_flush, bool with_loop=false, bool force=false, bool with_mmc=true);
+
 	void start_locate (samplepos_t, bool with_roll, bool with_flush, bool for_loop_enabled=false, bool force=false);
 	void force_locate (samplepos_t sample, bool with_roll = false);
 	void set_transport_speed (double speed, samplepos_t destination_sample, bool abort = false, bool clear_state = false, bool as_default = false);
-	void stop_transport (bool abort = false, bool clear_state = false);
-	void start_transport ();
 	void realtime_stop (bool abort, bool clear_state);
 	void realtime_locate ();
 	void non_realtime_start_scrub ();

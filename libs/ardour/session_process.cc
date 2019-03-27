@@ -215,7 +215,7 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 			bool b = false;
 
 			if ((ret = (*i)->roll (nframes, start_sample, end_sample, b)) < 0) {
-				stop_transport ();
+				_transport_fsm->process_event (TransportStateMachine::stop (false, false));
 				return -1;
 			}
 
@@ -901,7 +901,7 @@ Session::process_event (SessionEvent* ev)
 	case SessionEvent::StopOnce:
 		if (!non_realtime_work_pending()) {
 			_clear_event_type (SessionEvent::StopOnce);
-			stop_transport (ev->yes_or_no);
+			_transport_fsm->process_event (TransportStateMachine::stop (ev->yes_or_no, false));
 		}
 		remove = false;
 		del = false;
@@ -909,7 +909,7 @@ Session::process_event (SessionEvent* ev)
 
 	case SessionEvent::RangeStop:
 		if (!non_realtime_work_pending()) {
-			stop_transport (ev->yes_or_no);
+			_transport_fsm->process_event (TransportStateMachine::stop (ev->yes_or_no, false));
 		}
 		remove = false;
 		del = false;
@@ -1188,7 +1188,7 @@ Session::track_transport_master (float slave_speed, samplepos_t slave_transport_
 
 		if (_transport_speed != 0.0f) {
 			DEBUG_TRACE (DEBUG::Slave, string_compose ("slave stops transport: %1 sample %2 tf %3\n", slave_speed, slave_transport_sample, _transport_sample));
-			stop_transport ();
+			_transport_fsm->process_event (TransportStateMachine::stop (false, false));
 		}
 
 		if (slave_transport_sample != _transport_sample) {
