@@ -1107,14 +1107,14 @@ Session::request_cancel_play_range ()
 bool
 Session::solo_selection_active ()
 {
-	if ( _soloSelection.empty() ) {
+	if (_soloSelection.empty()) {
 		return false;
 	}
 	return true;
 }
 
 void
-Session::solo_selection ( StripableList &list, bool new_state  )
+Session::solo_selection (StripableList &list, bool new_state)
 {
 	boost::shared_ptr<ControlList> solo_list (new ControlList);
 	boost::shared_ptr<ControlList> unsolo_list (new ControlList);
