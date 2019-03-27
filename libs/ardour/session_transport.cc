@@ -74,7 +74,7 @@ using namespace PBD;
 
 
 /* *****************************************************************************
- * REALTIME ACTIONS (to be called on state transtion
+ * REALTIME ACTIONS (to be called on state transitions)
  * ****************************************************************************/
 
 void
