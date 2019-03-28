@@ -64,8 +64,6 @@ Session::process (pframes_t nframes)
 {
 	samplepos_t transport_at_start = _transport_sample;
 
-	//_transport_fsm->process_event (TransportStateMachine::play (2));
-
 	_silent = false;
 
 	if (processing_blocked()) {
