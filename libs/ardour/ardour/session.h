@@ -1224,6 +1224,8 @@ protected:
 	void locate (samplepos_t, bool with_roll, bool with_flush, bool with_loop=false, bool force=false, bool with_mmc=true);
 	void stop_transport (bool abort = false, bool clear_state = false);
 	void start_transport ();
+	void post_transport ();
+	void schedule_butler_for_transport_work ();
 
 private:
 	int  create (const std::string& mix_template, BusProfile*);
@@ -1250,7 +1252,6 @@ private:
 	samplecnt_t             _base_sample_rate;     // sample-rate of the session at creation time, "native" SR
 	samplecnt_t             _nominal_sample_rate;  // overridden by audioengine setting
 	samplecnt_t             _current_sample_rate;  // this includes video pullup offset
-	int                      transport_sub_state;
 	mutable gint            _record_status;
 	samplepos_t             _transport_sample;
 	gint                    _seek_counter;
@@ -1679,7 +1680,6 @@ private:
 	void non_realtime_locate ();
 	void non_realtime_stop (bool abort, int entry_request_count, bool& finished);
 	void non_realtime_overwrite (int entry_request_count, bool& finished);
-	void post_transport ();
 	void engine_halted ();
 	void xrun_recovery ();
 	void set_track_loop (bool);

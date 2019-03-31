@@ -37,6 +37,8 @@ class LIBARDOUR_API TransportAPI
 	virtual void locate (samplepos_t, bool with_roll, bool with_flush, bool with_loop=false, bool force=false, bool with_mmc=true) = 0;
 	virtual void stop_transport (bool abort = false, bool clear_state = false) = 0;
 	virtual void start_transport () = 0;
+	virtual void post_transport () = 0;
+	virtual void schedule_butler_for_transport_work () = 0;
 };
 
 } /* end namespace ARDOUR */

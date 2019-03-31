@@ -75,6 +75,8 @@ using namespace PBD;
 #endif
 
 
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << "ev" << ")\n"; _transport_fsm->process_event (ev); }
+
 /* *****************************************************************************
  * REALTIME ACTIONS (to be called on state transitions)
  * ****************************************************************************/
@@ -151,7 +153,9 @@ Session::realtime_stop (bool abort, bool clear_state)
 		waiting_for_sync_offset = true;
 	}
 
-	transport_sub_state = 0;
+	if (todo) {
+		TFSM_EVENT (TransportStateMachine::butler_required());
+	}
 }
 
 void
@@ -261,13 +265,17 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 	 * we are rolling AND
 	 * no autoplay in effect AND
 	 * we're not going to keep rolling after the locate AND
-	 * !(playing a loop with JACK sync)
+	 * !(playing a loop with JACK sync) AND
+	 * we're not synced to an external transport master
 	 *
 	 */
 
 	bool transport_was_stopped = !transport_rolling();
 
-	if (!transport_was_stopped && (!auto_play_legal || !config.get_auto_play()) && !with_roll && !(synced_to_engine() && play_loop) &&
+	if (!transport_was_stopped &&
+	    (!auto_play_legal || !config.get_auto_play()) &&
+	    !with_roll &&
+	    !(synced_to_engine() && play_loop) &&
 	    (!Profile->get_trx() || !(config.get_external_sync() && !synced_to_engine()))) {
 		realtime_stop (false, true); // XXX paul - check if the 2nd arg is really correct
 		transport_was_stopped = true;
@@ -374,7 +382,7 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 	}
 
 	if (need_butler) {
-		_butler->schedule_transport_work ();
+		TFSM_EVENT (TransportStateMachine::butler_required());
 	}
 
 	loop_changing = false;
@@ -463,7 +471,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 				_requested_return_sample = destination_sample;
 			}
 
-			_transport_fsm->process_event (TransportStateMachine::stop (abort, false));
+			TFSM_EVENT (TransportStateMachine::stop (abort, false));
 		}
 
 	} else if (transport_stopped() && speed == 1.0) {
@@ -500,7 +508,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 			_engine.transport_start ();
 			_count_in_once = false;
 		} else {
-			_transport_fsm->process_event (TransportStateMachine::start());
+			TFSM_EVENT (TransportStateMachine::start());
 		}
 
 	} else {
@@ -554,7 +562,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 
 		if (todo) {
 			add_post_transport_work (todo);
-			_butler->schedule_transport_work ();
+			TFSM_EVENT (TransportStateMachine::butler_required());
 		}
 
 		DEBUG_TRACE (DEBUG::Transport, string_compose ("send TSC3 with speed = %1\n", _transport_speed));
@@ -597,7 +605,6 @@ Session::stop_transport (bool abort, bool clear_state)
 	DEBUG_TRACE (DEBUG::Transport, "time to actually stop\n");
 
 	realtime_stop (abort, clear_state);
-	_butler->schedule_transport_work ();
 }
 
 /** Called from the process thread */
@@ -701,7 +708,7 @@ Session::start_transport ()
 }
 
 /** Do any transport work in the audio thread that needs to be done after the
- * transport thread is finished.  Audio thread, realtime safe.
+ * butler thread is finished.  Audio thread, realtime safe.
  */
 void
 Session::post_transport ()
@@ -717,18 +724,11 @@ Session::post_transport ()
 		}
 	}
 
-	if (ptw & PostTransportStop) {
-
-		transport_sub_state = 0;
-	}
-
 	if (ptw & PostTransportLocate) {
 
 		if (((!config.get_external_sync() && (auto_play_legal && config.get_auto_play())) && !_exporting) || (ptw & PostTransportRoll)) {
 			_count_in_once = false;
-			start_transport ();
-		} else {
-			transport_sub_state = 0;
+			TFSM_EVENT (TransportStateMachine::start());
 		}
 	}
 
@@ -739,6 +739,12 @@ Session::post_transport ()
 	set_post_transport_work (PostTransportWork (0));
 }
 
+void
+Session::schedule_butler_for_transport_work ()
+{
+	_butler->schedule_transport_work ();
+}
+
 bool
 Session::maybe_stop (samplepos_t limit)
 {
@@ -747,7 +753,7 @@ Session::maybe_stop (samplepos_t limit)
 		if (synced_to_engine () && config.get_jack_time_master ()) {
 			_engine.transport_stop ();
 		} else if (!synced_to_engine ()) {
-			_transport_fsm->process_event (TransportStateMachine::stop());
+			TFSM_EVENT (TransportStateMachine::stop());
 		}
 		return true;
 	}
@@ -856,11 +862,11 @@ Session::set_play_loop (bool yn, double speed)
 				   rolling, do not locate to loop start.
 				*/
 				if (!transport_rolling() && (speed != 0.0)) {
-					start_locate (loc->start(), true, true, false, true);
+					TFSM_EVENT (TransportStateMachine::locate (loc->start(), true, true, false, true));
 				}
 			} else {
 				if (speed != 0.0) {
-					start_locate (loc->start(), true, true, false, true);
+					TFSM_EVENT (TransportStateMachine::locate (loc->start(), true, true, false, true));
 				}
 			}
 		}
@@ -1756,7 +1762,7 @@ Session::unset_play_loop ()
 		if (Config->get_seamless_loop()) {
 			/* likely need to flush track buffers: this will locate us to wherever we are */
 			add_post_transport_work (PostTransportLocate);
-			_butler->schedule_transport_work ();
+			TFSM_EVENT (TransportStateMachine::butler_required());
 		}
 		TransportStateChange (); /* EMIT SIGNAL */
 	}
@@ -1915,7 +1921,6 @@ Session::engine_halted ()
 
 	realtime_stop (false, true);
 	non_realtime_stop (false, 0, ignored);
-	transport_sub_state = 0;
 
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("send TSC6 with speed = %1\n", _transport_speed));
 	TransportStateChange (); /* EMIT SIGNAL */

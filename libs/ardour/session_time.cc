@@ -34,12 +34,15 @@
 
 #include "ardour/session.h"
 #include "ardour/tempo.h"
+#include "ardour/transport_fsm.h"
 
 #include "pbd/i18n.h"
 
 using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
+
+#define TFSM_EVENT(ev) _transport_fsm->process_event (ev)
 
 /* BBT TIME*/
 
@@ -213,7 +216,7 @@ Session::backend_sync_callback (TransportState state, samplepos_t pos)
 	case TransportRolling:
 		// cerr << "SYNC: rolling slave = " << slave << endl;
 		if (slave) {
-			start_transport ();
+			TFSM_EVENT (TransportStateMachine::start());
 		}
 		break;
 

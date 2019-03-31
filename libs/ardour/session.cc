@@ -179,7 +179,6 @@ Session::Session (AudioEngine &eng,
 	, _base_sample_rate (0)
 	, _nominal_sample_rate (0)
 	, _current_sample_rate (0)
-	, transport_sub_state (0)
 	, _record_status (Disabled)
 	, _transport_sample (0)
 	, _seek_counter (0)

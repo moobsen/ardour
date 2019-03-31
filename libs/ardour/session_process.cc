@@ -55,6 +55,7 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace std;
 
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->process_event (ev); }
 
 /** Called by the audio engine when there is work to be done with JACK.
  * @param nframes Number of samples to process.
@@ -74,7 +75,12 @@ Session::process (pframes_t nframes)
 
 	if (non_realtime_work_pending()) {
 		if (!_butler->transport_work_requested ()) {
-			post_transport ();
+			if (_transport_fsm->is_flag_active<TransportStateMachine::ButlerWaiting>()) {
+				TFSM_EVENT (TransportStateMachine::butler_done());
+			} else {
+				/* TFSM wasn't waiting for this, but we need it anyway (e.g. initial AdjustCaptureBuffering) */
+				post_transport ();
+			}
 		}
 	}
 
@@ -89,9 +95,13 @@ Session::process (pframes_t nframes)
 	 * callig it hold a _processor_lock reader-lock
 	 */
 	boost::shared_ptr<RouteList> r = routes.reader ();
+	bool declick_in_progress = false;
 	for (RouteList::const_iterator i = r->begin(); i != r->end(); ++i) {
 		if ((*i)->apply_processor_changes_rt()) {
 			_rt_emit_pending = true;
+		}
+		if ((*i)->declick_in_progress()) {
+			declick_in_progress = true;
 		}
 	}
 	if (_rt_emit_pending) {
@@ -103,6 +113,15 @@ Session::process (pframes_t nframes)
 			pthread_mutex_unlock (&_rt_emit_mutex);
 			_rt_emit_pending = false;
 		}
+	}
+
+	if (!declick_in_progress) {
+		std::cerr << "No declick\n";
+		if (_transport_fsm->is_flag_active<TransportStateMachine::DeclickOutInProgress>()) {
+			TFSM_EVENT (TransportStateMachine::declick_done());
+		}
+	} else {
+		std::cerr << "someone is declicking\n";
 	}
 
 	_engine.main_thread()->drop_buffers ();
@@ -811,6 +830,7 @@ Session::process_event (SessionEvent* ev)
 		if (ev->type != SessionEvent::Locate) {
 			immediate_events.insert (immediate_events.end(), ev);
 			_remove_event (ev);
+			std::cerr << "no events, NRWP.... " << std::hex << post_transport_work() << std::dec << " event was " << ev->type << std::endl;
 			return;
 		}
 	}
@@ -827,7 +847,7 @@ Session::process_event (SessionEvent* ev)
 			/* roll after locate, do not flush, set "with loop"
 			   true only if we are seamless looping
 			*/
-			start_locate (ev->target_sample, true, false, Config->get_seamless_loop());
+			TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, false, Config->get_seamless_loop(), false));
 		}
 		remove = false;
 		del = false;
@@ -839,7 +859,7 @@ Session::process_event (SessionEvent* ev)
 			locate (ev->target_sample, false, true, false);
 		} else {
 			/* args: do not roll after locate, do flush, not with loop */
-			start_locate (ev->target_sample, false, true, false);
+			TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, false, true, false, false));
 		}
 		_send_timecode_update = true;
 		break;
@@ -850,14 +870,14 @@ Session::process_event (SessionEvent* ev)
 			locate (ev->target_sample, true, true, false);
 		} else {
 			/* args: roll after locate, do flush, not with loop */
-			start_locate (ev->target_sample, true, true, false);
+			TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, true, false, false));
 		}
 		_send_timecode_update = true;
 		break;
 
 	case SessionEvent::Skip:
 		if (Config->get_skip_playback()) {
-			start_locate (ev->target_sample, true, true, false);
+			TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, true, false, false));
 			_send_timecode_update = true;
 		}
 		remove = false;
@@ -872,6 +892,7 @@ Session::process_event (SessionEvent* ev)
 
 
 	case SessionEvent::SetTransportSpeed:
+		std::cerr << "SE::STS " << ev->speed << std::endl;
 		set_transport_speed (ev->speed, ev->target_sample, ev->yes_or_no, ev->second_yes_or_no, ev->third_yes_or_no);
 		break;
 
@@ -916,7 +937,7 @@ Session::process_event (SessionEvent* ev)
 
 	case SessionEvent::RangeLocate:
 		/* args: roll after locate, do flush, not with loop */
-		start_locate (ev->target_sample, true, true, false);
+		TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, true, false, false));
 		remove = false;
 		del = false;
 		break;
@@ -1178,7 +1199,7 @@ Session::track_transport_master (float slave_speed, samplepos_t slave_transport_
 
 		if (transport_master_tracking_state == Running && _transport_speed == 0.0f) {
 			DEBUG_TRACE (DEBUG::Slave, "slave starts transport\n");
-			start_transport ();
+			TFSM_EVENT (TransportStateMachine::start());
 		}
 
 	} else { // slave_speed is 0
