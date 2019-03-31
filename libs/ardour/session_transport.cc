@@ -25,12 +25,15 @@
 #include <cerrno>
 #include <unistd.h>
 
-#include "pbd/undo.h"
+#include <boost/algorithm/string/erase.hpp>
+
 #include "pbd/error.h"
 #include "pbd/enumwriter.h"
-#include "pbd/pthread_utils.h"
+#include "pbd/i18n.h"
 #include "pbd/memento_command.h"
+#include "pbd/pthread_utils.h"
 #include "pbd/stacktrace.h"
+#include "pbd/undo.h"
 
 #include "midi++/mmc.h"
 #include "midi++/port.h"
@@ -54,8 +57,6 @@
 #include "ardour/operations.h"
 #include "ardour/vca.h"
 #include "ardour/vca_manager.h"
-
-#include "pbd/i18n.h"
 
 using namespace std;
 using namespace ARDOUR;

@@ -22,6 +22,9 @@
 #include <algorithm>
 #include <unistd.h>
 
+#include <boost/algorithm/string/erase.hpp>
+
+#include "pbd/i18n.h"
 #include "pbd/error.h"
 #include "pbd/enumwriter.h"
 
@@ -47,8 +50,6 @@
 #include "ardour/vca_manager.h"
 
 #include "midi++/mmc.h"
-
-#include "pbd/i18n.h"
 
 using namespace ARDOUR;
 using namespace PBD;

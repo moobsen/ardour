@@ -39,6 +39,7 @@
 #include "pbd/convert.h"
 #include "pbd/error.h"
 #include "pbd/file_utils.h"
+#include "pbd/i18n.h"
 #include "pbd/md5.h"
 #include "pbd/pthread_utils.h"
 #include "pbd/search_path.h"
@@ -119,8 +120,6 @@
 #include "midi++/mmc.h"
 
 #include "LuaBridge/LuaBridge.h"
-
-#include "pbd/i18n.h"
 
 #include <glibmm/checksum.h>
 
