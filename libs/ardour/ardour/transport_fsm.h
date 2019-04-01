@@ -158,7 +158,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	virtual void start_playback (start const& p) {}
 	virtual void stop_playback (stop const& s) {}
 	virtual void start_locate (locate const& s) {}
-	virtual void post_transport (butler_done const& s) {}
+	virtual void butler_completed_transport_work (butler_done const& s) {}
 	virtual void schedule_butler_for_transport_work (butler_required const&) {}
 	virtual void exit_declick (declick_done const&) {}
 
@@ -173,16 +173,13 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	/* transition table */
 	typedef TransportFSM T; // makes transition table cleaner
 
-
-need "locate done" to transition out of Locating !!!!
-
 	struct transition_table : mpl::vector<
 		//      Start     Event         Next      Action               Guard
 		//    +----------+-------------+----------+---------------------+----------------------+
 		a_row < Stopped  , start       , Rolling  , &T::start_playback                        >,
 		_row  < Stopped  , stop        , Stopped                                               >,
 		a_row < Stopped  , locate      , Locating , &T::start_locate                           >,
-		a_row < Stopped  , butler_done , Stopped  , &T::post_transport                        >,
+		a_row < Stopped  , butler_done , Stopped  , &T::butler_completed_transport_work                        >,
 		a_row < Stopped  , butler_required , ButlerWait  , &T::schedule_butler_for_transport_work >,
 		//    +----------+-------------+----------+---------------------+----------------------+
 		a_row  < Rolling  , stop       , DeclickOut, &T::stop_playback                        >,
@@ -200,7 +197,7 @@ need "locate done" to transition out of Locating !!!!
 		_row < Locating , butler_done , Locating                                             >,
 		a_row < Locating , butler_required , ButlerWait  , &T::schedule_butler_for_transport_work >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row < ButlerWait , butler_done , Stopped , &T::post_transport                       >,
+		a_row < ButlerWait , butler_done , Stopped , &T::butler_completed_transport_work                      >,
 		boost::msm::front::Row < ButlerWait , start , boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >,
 		boost::msm::front::Row < ButlerWait , stop , boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >,
 		a_row < ButlerWait , butler_required , ButlerWait , &T::schedule_butler_for_transport_work >
@@ -242,7 +239,7 @@ class LIBARDOUR_API TransportSM : public TransportStateMachine::transport_fsm_t
 	void start_playback (TransportStateMachine::start const&);
 	void stop_playback (TransportStateMachine::stop const&);
 	void start_locate (TransportStateMachine::locate const&);
-	void post_transport (TransportStateMachine::butler_done const&);
+	void butler_completed_transport_work (TransportStateMachine::butler_done const&);
 	void schedule_butler_for_transport_work (TransportStateMachine::butler_required const&);
 	void exit_declick (TransportStateMachine::declick_done const&);
 

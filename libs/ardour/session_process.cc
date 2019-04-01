@@ -79,7 +79,7 @@ Session::process (pframes_t nframes)
 				TFSM_EVENT (TransportStateMachine::butler_done());
 			} else {
 				/* TFSM wasn't waiting for this, but we need it anyway (e.g. initial AdjustCaptureBuffering) */
-				post_transport ();
+				butler_completed_transport_work ();
 			}
 		}
 	}

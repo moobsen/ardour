@@ -711,7 +711,7 @@ Session::start_transport ()
  * butler thread is finished.  Audio thread, realtime safe.
  */
 void
-Session::post_transport ()
+Session::butler_completed_transport_work ()
 {
 	ENSURE_PROCESS_THREAD;
 	PostTransportWork ptw = post_transport_work ();

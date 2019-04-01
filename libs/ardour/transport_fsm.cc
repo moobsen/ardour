@@ -58,10 +58,10 @@ TransportSM::start_locate (TransportStateMachine::locate const& l)
 }
 
 void
-TransportSM::post_transport (TransportStateMachine::butler_done const&)
+TransportSM::butler_completed_transport_work (TransportStateMachine::butler_done const&)
 {
-	std::cout << "tfsm::start_transport\n";
-	api.post_transport ();
+	std::cout << "tfsm::butler_completed_transport_work\n";
+	api.butler_completed_transport_work ();
 }
 
 void

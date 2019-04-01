@@ -1224,7 +1224,7 @@ protected:
 	void locate (samplepos_t, bool with_roll, bool with_flush, bool with_loop=false, bool force=false, bool with_mmc=true);
 	void stop_transport (bool abort = false, bool clear_state = false);
 	void start_transport ();
-	void post_transport ();
+	void butler_completed_transport_work ();
 	void schedule_butler_for_transport_work ();
 
 private:
