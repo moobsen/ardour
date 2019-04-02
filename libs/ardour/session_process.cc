@@ -854,24 +854,14 @@ Session::process_event (SessionEvent* ev)
 		break;
 
 	case SessionEvent::Locate:
-		if (ev->yes_or_no) { /* force locate */
-			/* args: do not roll after locate, do flush, not with loop */
-			locate (ev->target_sample, false, true, false);
-		} else {
-			/* args: do not roll after locate, do flush, not with loop */
-			TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, false, true, false, false));
-		}
+		/* args: do not roll after locate, do flush, not with loop, force */
+		TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, false, true, false, ev->yes_or_no));
 		_send_timecode_update = true;
 		break;
 
 	case SessionEvent::LocateRoll:
-		if (ev->yes_or_no) {
-			/* args: roll after locate, do flush, not with loop */
-			locate (ev->target_sample, true, true, false);
-		} else {
-			/* args: roll after locate, do flush, not with loop */
-			TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, true, false, false));
-		}
+		/* args: roll after locate, do flush, not with loop, force */
+		TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, true, false, ev->yes_or_no));
 		_send_timecode_update = true;
 		break;
 

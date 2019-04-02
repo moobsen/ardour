@@ -38,7 +38,6 @@ void
 TransportSM::stop_playback (TransportStateMachine::stop const& s)
 {
 	std::cout << "tfsm::stop_playback" << std::endl;
-	_stopped_to_locate = false;
 	api.stop_transport (s.abort, s.clear_state);
 }
 
@@ -46,7 +45,11 @@ void
 TransportSM::exit_declick (TransportStateMachine::declick_done const&)
 {
 	std::cout << "tfsm::exit_declick" << std::endl;
-	api.stop_transport (false, false);
+	if (_stopped_to_locate) {
+		api.locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
+	} else {
+		api.stop_transport (false, false);
+	}
 }
 
 void

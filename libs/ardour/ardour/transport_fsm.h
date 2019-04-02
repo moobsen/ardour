@@ -17,6 +17,7 @@ namespace TransportStateMachine
 
 /* events to be delivered to the FSM */
 
+struct locate_done {};
 struct butler_done {};
 struct butler_required {};
 struct declick_done {};
@@ -32,6 +33,13 @@ struct stop {
 };
 
 struct locate {
+	locate ()
+		: target (0)
+		, with_roll (false)
+		, with_flush (false)
+		, with_loop (false)
+		, force (false) {}
+
 	locate (samplepos_t target, bool roll, bool flush, bool loop, bool f4c)
 		: target (target)
 		, with_roll (roll)
@@ -164,8 +172,10 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	/* guards */
 
-	bool stopped_to_locate(declick_done const&) { return _stopped_to_locate; }
-	bool stopped_to_stop(declick_done const&)  { return !_stopped_to_locate; }
+	template<typename Event> bool stopped_to_locate(Event const&) { std::cerr << "Stopped to locate: " << _stopped_to_locate << std::endl; return _stopped_to_locate; }
+	template<typename Event> bool stopped_to_stop(Event const&)  { std::cerr << "Stopped to stop: " << !_stopped_to_locate << std::endl; return !_stopped_to_locate; }
+	void mark_for_locate (locate const& l)  { std::cerr << "marking declick out for locate\n"; _stopped_to_locate = true; _last_locate = l; stop_playback (stop()); }
+	void mark_for_stop (stop const& s)  { std::cerr << "marking declick out for stop\n"; _stopped_to_locate = false; stop_playback (s); }
 
 	/* the initial state */
 	typedef Stopped initial_state;
@@ -176,28 +186,30 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	struct transition_table : mpl::vector<
 		//      Start     Event         Next      Action               Guard
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row < Stopped  , start       , Rolling  , &T::start_playback                        >,
+		a_row < Stopped  , start       , Rolling  , &T::start_playback                         >,
 		_row  < Stopped  , stop        , Stopped                                               >,
 		a_row < Stopped  , locate      , Locating , &T::start_locate                           >,
-		a_row < Stopped  , butler_done , Stopped  , &T::butler_completed_transport_work                        >,
+		a_row < Stopped  , butler_done , Stopped  , &T::butler_completed_transport_work        >,
 		a_row < Stopped  , butler_required , ButlerWait  , &T::schedule_butler_for_transport_work >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row  < Rolling  , stop       , DeclickOut, &T::stop_playback                        >,
+		a_row < Rolling  , stop        , DeclickOut, &T::mark_for_stop                        >,
 		_row  < Rolling  , start       , Rolling                                              >,
-		a_row < Rolling  , locate      , DeclickOut , &T::start_locate                        >,
+		a_row < Rolling  , locate      , DeclickOut , &T::mark_for_locate                     >,
 		_row  < Rolling  , butler_done , Rolling                                              >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		g_row < DeclickOut , declick_done , Locating, &T::stopped_to_locate >,
-		g_row < DeclickOut , declick_done , Stopped,  &T::stopped_to_stop   >,
+		row < DeclickOut , declick_done , Locating, &T::exit_declick, &T::stopped_to_locate >,
+		row < DeclickOut , declick_done , Stopped,  &T::exit_declick, &T::stopped_to_stop   >,
 		a_row < DeclickOut , butler_required , DeclickOut, &T::schedule_butler_for_transport_work >,
 		//    +----------+-------------+----------+---------------------+----------------------+
+		_row < Locating , locate_done , Stopped                          >,
 		a_row < Locating , stop        , Stopped  , &T::stop_playback                         >,
 		_row < Locating , start       , Rolling                                              >,
 		_row < Locating , locate      , Rolling                                              >,
 		_row < Locating , butler_done , Locating                                             >,
 		a_row < Locating , butler_required , ButlerWait  , &T::schedule_butler_for_transport_work >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row < ButlerWait , butler_done , Stopped , &T::butler_completed_transport_work                      >,
+		row < ButlerWait , butler_done , Stopped , &T::butler_completed_transport_work, &T::stopped_to_stop                     >,
+		row < ButlerWait , butler_done , Locating , &T::butler_completed_transport_work, &T::stopped_to_locate                     >,
 		boost::msm::front::Row < ButlerWait , start , boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >,
 		boost::msm::front::Row < ButlerWait , stop , boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >,
 		a_row < ButlerWait , butler_required , ButlerWait , &T::schedule_butler_for_transport_work >
@@ -207,6 +219,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	typedef int activate_deferred_events;
 
 	bool _stopped_to_locate;
+	locate _last_locate;
 };
 
 typedef msm::back::state_machine<TransportFSM> transport_fsm_t;

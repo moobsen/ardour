@@ -75,7 +75,7 @@ using namespace PBD;
 #endif
 
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << "ev" << ")\n"; _transport_fsm->process_event (ev); }
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->process_event (ev); }
 
 /* *****************************************************************************
  * REALTIME ACTIONS (to be called on state transitions)
@@ -245,6 +245,7 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 			set_transport_speed (1.0, 0, false);
 		}
 		loop_changing = false;
+		TFSM_EVENT (TransportStateMachine::locate_done());
 		Located (); /* EMIT SIGNAL */
 		return;
 	}
@@ -383,6 +384,8 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 
 	if (need_butler) {
 		TFSM_EVENT (TransportStateMachine::butler_required());
+	} else {
+		TFSM_EVENT (TransportStateMachine::locate_done());
 	}
 
 	loop_changing = false;
@@ -724,12 +727,17 @@ Session::butler_completed_transport_work ()
 		}
 	}
 
+	std::cerr << "PoST-BUTLER, locate to do? " << (ptw & PostTransportLocate) << std::endl;
+
 	if (ptw & PostTransportLocate) {
 
+#if 0 // move this into a guard condition inside TFSM
 		if (((!config.get_external_sync() && (auto_play_legal && config.get_auto_play())) && !_exporting) || (ptw & PostTransportRoll)) {
 			_count_in_once = false;
 			TFSM_EVENT (TransportStateMachine::start());
 		}
+#endif
+		TFSM_EVENT (TransportStateMachine::locate_done());
 	}
 
 	set_next_event ();
@@ -1177,7 +1185,7 @@ Session::butler_transport_work ()
 	PostTransportWork ptw = post_transport_work();
 	uint64_t before;
 
-	DEBUG_TRACE (DEBUG::Transport, string_compose ("Butler transport work, todo = %1 at %2\n", enum_2_string (ptw), (before = g_get_monotonic_time())));
+	DEBUG_TRACE (DEBUG::Transport, string_compose ("Butler transport work, todo = %1 (%3%4%5) at %2\n", enum_2_string (ptw), (before = g_get_monotonic_time()), std::hex, ptw, std::dec));
 
 	if (ptw & PostTransportLocate) {
 
