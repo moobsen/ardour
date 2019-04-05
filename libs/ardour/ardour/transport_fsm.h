@@ -5,6 +5,8 @@
 #include <boost/msm/front/state_machine_def.hpp>
 #include <boost/msm/front/functor_row.hpp>
 
+#include "pbd/stacktrace.h"
+
 /* state machine */
 namespace msm = boost::msm;
 namespace mpl = boost::mpl;
@@ -135,12 +137,14 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		on_entry (Event const&, FSM&)
 		{
 			std::cout << "entering: DeclickOut" << std::endl;
+			PBD::stacktrace (std::cerr, 30);
 		}
 
 		template <class Event,class FSM> void
 		on_exit (Event const&, FSM&)
 		{
 			std::cout << "leaving: DeclickOut" << std::endl;
+			PBD::stacktrace (std::cerr, 30);
 		}
 
 		typedef mpl::vector1<DeclickOutInProgress> flag_list;
@@ -169,6 +173,8 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	virtual void butler_completed_transport_work (butler_done const& s) {}
 	virtual void schedule_butler_for_transport_work (butler_required const&) {}
 	virtual void exit_declick (declick_done const&) {}
+	virtual void locate_phase_two (butler_done const&) {}
+	virtual void roll_after_locate (locate_done const &) {}
 
 	/* guards */
 
@@ -176,6 +182,8 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	template<typename Event> bool stopped_to_stop(Event const&)  { std::cerr << "Stopped to stop: " << !_stopped_to_locate << std::endl; return !_stopped_to_locate; }
 	void mark_for_locate (locate const& l)  { std::cerr << "marking declick out for locate\n"; _stopped_to_locate = true; _last_locate = l; stop_playback (stop()); }
 	void mark_for_stop (stop const& s)  { std::cerr << "marking declick out for stop\n"; _stopped_to_locate = false; stop_playback (s); }
+	virtual bool should_roll_after_locate (locate_done const &)  { return false; }
+	bool should_not_roll_after_locate (locate_done const & l)  { return !should_roll_after_locate (l); }
 
 	/* the initial state */
 	typedef Stopped initial_state;
@@ -188,7 +196,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		//    +----------+-------------+----------+---------------------+----------------------+
 		a_row < Stopped  , start       , Rolling  , &T::start_playback                         >,
 		_row  < Stopped  , stop        , Stopped                                               >,
-		a_row < Stopped  , locate      , Locating , &T::start_locate                           >,
+		a_row < Stopped  , locate      , Locating , &T::mark_for_locate                        >,
 		a_row < Stopped  , butler_done , Stopped  , &T::butler_completed_transport_work        >,
 		a_row < Stopped  , butler_required , ButlerWait  , &T::schedule_butler_for_transport_work >,
 		//    +----------+-------------+----------+---------------------+----------------------+
@@ -197,19 +205,20 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		a_row < Rolling  , locate      , DeclickOut , &T::mark_for_locate                     >,
 		_row  < Rolling  , butler_done , Rolling                                              >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		row < DeclickOut , declick_done , Locating, &T::exit_declick, &T::stopped_to_locate >,
-		row < DeclickOut , declick_done , Stopped,  &T::exit_declick, &T::stopped_to_stop   >,
-		a_row < DeclickOut , butler_required , DeclickOut, &T::schedule_butler_for_transport_work >,
+		row   < DeclickOut , declick_done , Locating, &T::exit_declick, &T::stopped_to_locate >,
+		row   < DeclickOut , declick_done , Stopped,  &T::exit_declick, &T::stopped_to_stop   >,
+		a_row < DeclickOut , butler_required , ButlerWait, &T::schedule_butler_for_transport_work >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		_row < Locating , locate_done , Stopped                          >,
+		row   < Locating , locate_done , Rolling, &T::roll_after_locate, &T::should_roll_after_locate >,
+		g_row < Locating , locate_done , Stopped, &T::should_not_roll_after_locate >,
 		a_row < Locating , stop        , Stopped  , &T::stop_playback                         >,
-		_row < Locating , start       , Rolling                                              >,
-		_row < Locating , locate      , Rolling                                              >,
-		_row < Locating , butler_done , Locating                                             >,
+		_row  < Locating , start       , Rolling                                              >,
+		_row  < Locating , locate      , Rolling                                              >,
+		_row  < Locating , butler_done , Locating                                             >,
 		a_row < Locating , butler_required , ButlerWait  , &T::schedule_butler_for_transport_work >,
 		//    +----------+-------------+----------+---------------------+----------------------+
 		row < ButlerWait , butler_done , Stopped , &T::butler_completed_transport_work, &T::stopped_to_stop                     >,
-		row < ButlerWait , butler_done , Locating , &T::butler_completed_transport_work, &T::stopped_to_locate                     >,
+		row < ButlerWait , butler_done , Locating , &T::locate_phase_two, &T::stopped_to_locate                     >,
 		boost::msm::front::Row < ButlerWait , start , boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >,
 		boost::msm::front::Row < ButlerWait , stop , boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >,
 		a_row < ButlerWait , butler_required , ButlerWait , &T::schedule_butler_for_transport_work >
@@ -255,7 +264,11 @@ class LIBARDOUR_API TransportSM : public TransportStateMachine::transport_fsm_t
 	void butler_completed_transport_work (TransportStateMachine::butler_done const&);
 	void schedule_butler_for_transport_work (TransportStateMachine::butler_required const&);
 	void exit_declick (TransportStateMachine::declick_done const&);
+	void roll_after_locate (TransportStateMachine::locate_done const &);
+	void locate_phase_two (TransportStateMachine::butler_done const&);
 
+	/* virtual guards (which require TransportAPI access) */
+	bool should_roll_after_locate (TransportStateMachine::locate_done const &);
 };
 
 } /* end namespace ARDOUR */

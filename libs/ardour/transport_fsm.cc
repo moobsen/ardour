@@ -73,3 +73,23 @@ TransportSM::schedule_butler_for_transport_work (TransportStateMachine::butler_r
 	api.schedule_butler_for_transport_work ();
 }
 
+bool
+TransportSM::should_roll_after_locate (TransportStateMachine::locate_done const &)
+{
+	return api.should_roll_after_locate ();
+}
+
+void
+TransportSM::roll_after_locate (TransportStateMachine::locate_done const &)
+{
+	api.start_transport ();
+}
+
+void
+TransportSM::locate_phase_two (TransportStateMachine::butler_done const &)
+{
+	//assert (_stopped_to_locate);
+	std::cerr << "Locate Phase 2: stl = " << _stopped_to_locate << std::endl;
+	api.butler_completed_transport_work ();
+	api.locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
+}

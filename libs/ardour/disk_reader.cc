@@ -486,9 +486,6 @@ DiskReader::declick_in_progress () const {
 	/* TODO use an atomic-get.
 	 * this may be called from the butler thread
 	 */
-	if (_declick_amp.gain() != 0) {
-		std::cerr << name() << " DCA = " << _declick_amp.gain() << std::endl;
-	}
 	return _declick_amp.gain() != 0; // declick-out
 }
 

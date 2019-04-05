@@ -154,6 +154,7 @@ Session::realtime_stop (bool abort, bool clear_state)
 	}
 
 	if (todo) {
+		std::cerr << "Need butler for " << enum_2_string (todo) << std::endl;
 		TFSM_EVENT (TransportStateMachine::butler_required());
 	}
 }
@@ -245,6 +246,7 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 			set_transport_speed (1.0, 0, false);
 		}
 		loop_changing = false;
+		std::cerr << "no-force locate, location matches, just say done and get one with it\n";
 		TFSM_EVENT (TransportStateMachine::locate_done());
 		Located (); /* EMIT SIGNAL */
 		return;
@@ -605,7 +607,7 @@ Session::stop_transport (bool abort, bool clear_state)
 		return;
 	}
 
-	DEBUG_TRACE (DEBUG::Transport, "time to actually stop\n");
+	DEBUG_TRACE (DEBUG::Transport, string_compose ("time to actually stop with TS @ %1\n", _transport_sample));
 
 	realtime_stop (abort, clear_state);
 }
@@ -710,6 +712,21 @@ Session::start_transport ()
 	TransportStateChange (); /* EMIT SIGNAL */
 }
 
+bool
+Session::should_roll_after_locate () const
+{
+	/* a locate must previously have been requested and completed */
+
+	const bool r =  ((!config.get_external_sync() && (auto_play_legal && config.get_auto_play())) && !_exporting) || (post_transport_work() & PostTransportRoll);
+	std::cerr << "Should roll after locate ? " << r
+	          << " exsync " << !config.get_external_sync()
+	          << " ap " << auto_play_legal << " && " << config.get_auto_play()
+	          << " export " << !_exporting
+	          << " ptroll " << (post_transport_work() & PostTransportRoll)
+	          << std::endl;
+	return r;
+}
+
 /** Do any transport work in the audio thread that needs to be done after the
  * butler thread is finished.  Audio thread, realtime safe.
  */
@@ -730,13 +747,6 @@ Session::butler_completed_transport_work ()
 	std::cerr << "PoST-BUTLER, locate to do? " << (ptw & PostTransportLocate) << std::endl;
 
 	if (ptw & PostTransportLocate) {
-
-#if 0 // move this into a guard condition inside TFSM
-		if (((!config.get_external_sync() && (auto_play_legal && config.get_auto_play())) && !_exporting) || (ptw & PostTransportRoll)) {
-			_count_in_once = false;
-			TFSM_EVENT (TransportStateMachine::start());
-		}
-#endif
 		TFSM_EVENT (TransportStateMachine::locate_done());
 	}
 
@@ -1668,6 +1678,7 @@ Session::non_realtime_stop (bool abort, int on_entry, bool& finished)
 		}
 	}
 
+#if 0
 	/* this for() block can be put inside the previous if() and has the effect of ... ??? what */
 
 	{
@@ -1683,6 +1694,7 @@ Session::non_realtime_stop (bool abort, int on_entry, bool& finished)
 			}
 		}
 	}
+#endif
 
 	{
 		VCAList v = _vca_manager->vcas ();

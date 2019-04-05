@@ -39,6 +39,7 @@ class LIBARDOUR_API TransportAPI
 	virtual void start_transport () = 0;
 	virtual void butler_completed_transport_work () = 0;
 	virtual void schedule_butler_for_transport_work () = 0;
+	virtual bool should_roll_after_locate () const = 0;
 };
 
 } /* end namespace ARDOUR */

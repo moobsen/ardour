@@ -1226,6 +1226,7 @@ protected:
 	void start_transport ();
 	void butler_completed_transport_work ();
 	void schedule_butler_for_transport_work ();
+	bool should_roll_after_locate () const;
 
 private:
 	int  create (const std::string& mix_template, BusProfile*);

@@ -116,12 +116,9 @@ Session::process (pframes_t nframes)
 	}
 
 	if (!declick_in_progress) {
-		std::cerr << "No declick\n";
 		if (_transport_fsm->is_flag_active<TransportStateMachine::DeclickOutInProgress>()) {
 			TFSM_EVENT (TransportStateMachine::declick_done());
 		}
-	} else {
-		std::cerr << "someone is declicking\n";
 	}
 
 	_engine.main_thread()->drop_buffers ();
