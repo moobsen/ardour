@@ -55,7 +55,7 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace std;
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->backend()->enqueue_event (ev);std::cerr << "queue size now " << _transport_fsm->backend()->get_message_queue_size() << std::endl; }
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev);std::cerr << "queue size now " << _transport_fsm->backend()->get_message_queue_size() << std::endl; }
 
 /** Called by the audio engine when there is work to be done with JACK.
  * @param nframes Number of samples to process.

@@ -42,7 +42,7 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->backend()->process_event (ev); }
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev); }
 
 /* BBT TIME*/
 

@@ -70,6 +70,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		boost::shared_ptr<back> p (new back);
 		p->wp = p;
 		p->api = &api;
+		p->pdepth = 0;
 		return p;
 	}
 
@@ -177,19 +178,28 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	};
 
 	void flush_event_queue () {
+		std::cerr << "FEQ " << backend()->get_message_queue_size() << std::endl;
 		wp.lock()->execute_queued_events ();
+	}
+
+	template<typename Event> void enqueue (Event const & e) {
+		if (pdepth > 0) {
+			backend()->enqueue_event (e);
+		} else {
+			backend()->process_event (e);
+		}
 	}
 
 	/* transition actions */
 
-	void _start_playback (start_transport const& e) { start_playback (e); flush_event_queue(); }
-	void _stop_playback (stop_transport const& e) { stop_playback (e); flush_event_queue(); }
-	void _start_locate (locate const& e) { start_locate (e); flush_event_queue(); }
-	void _butler_completed_transport_work (butler_done const& e) { butler_completed_transport_work (e); flush_event_queue(); }
-	void _schedule_butler_for_transport_work (butler_required const& e) { schedule_butler_for_transport_work (e); flush_event_queue(); }
-	void _exit_declick (declick_done const& e) { exit_declick (e); flush_event_queue(); }
-	void _locate_phase_two (butler_done const& e) { locate_phase_two (e); flush_event_queue(); }
-	void _roll_after_locate (locate_done const& e) { roll_after_locate (e); flush_event_queue(); }
+	void _start_playback (start_transport const& e) { pdepth++; start_playback (e); pdepth--; flush_event_queue(); }
+	void _stop_playback (stop_transport const& e) { pdepth++; stop_playback (e); pdepth--; flush_event_queue(); }
+	void _start_locate (locate const& e) { pdepth++; start_locate (e); pdepth--; flush_event_queue(); }
+	void _butler_completed_transport_work (butler_done const& e) { pdepth++; butler_completed_transport_work (e); pdepth--; flush_event_queue(); }
+	void _schedule_butler_for_transport_work (butler_required const& e) { pdepth++; schedule_butler_for_transport_work (e); pdepth--; flush_event_queue(); }
+	void _exit_declick (declick_done const& e) { pdepth++; exit_declick (e); pdepth--; flush_event_queue(); }
+	void _locate_phase_two (butler_done const& e) { pdepth++; locate_phase_two (e); pdepth--; flush_event_queue(); }
+	void _roll_after_locate (locate_done const& e) { pdepth++; roll_after_locate (e); pdepth--; flush_event_queue(); }
 
 	void start_playback (start_transport const& p);
 	void stop_playback (stop_transport const& s);
@@ -254,6 +264,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	bool _stopped_to_locate;
 	locate _last_locate;
+	int pdepth;
 
 	TransportAPI* api;
 };

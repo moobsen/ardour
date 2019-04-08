@@ -75,7 +75,7 @@ using namespace PBD;
 #endif
 
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->backend()->enqueue_event (ev);std::cerr << "queue size now " << _transport_fsm->backend()->get_message_queue_size() << std::endl; }
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev);std::cerr << "queue size now " << _transport_fsm->backend()->get_message_queue_size() << std::endl; }
 
 /* *****************************************************************************
  * REALTIME ACTIONS (to be called on state transitions)
