@@ -21,75 +21,71 @@
 
 using namespace ARDOUR;
 
-TransportSM::TransportSM (TransportAPI& a)
-	: api (a)
-{}
-
 /* transition actions */
 
 void
-TransportSM::start_playback (TransportStateMachine::start const& p)
+TransportFSM::start_playback (TransportFSM::start_transport const& p)
 {
 	std::cout << "tfsm::start_playback" << std::endl;
-	api.start_transport();
+	api->start_transport();
 }
 
 void
-TransportSM::stop_playback (TransportStateMachine::stop const& s)
+TransportFSM::stop_playback (TransportFSM::stop_transport const& s)
 {
 	std::cout << "tfsm::stop_playback" << std::endl;
-	api.stop_transport (s.abort, s.clear_state);
+	api->stop_transport (s.abort, s.clear_state);
 }
 
 void
-TransportSM::exit_declick (TransportStateMachine::declick_done const&)
+TransportFSM::exit_declick (TransportFSM::declick_done const&)
 {
 	std::cout << "tfsm::exit_declick" << std::endl;
 	if (_stopped_to_locate) {
-		api.locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
+		api->locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
 	} else {
-		api.stop_transport (false, false);
+		api->stop_transport (false, false);
 	}
 }
 
 void
-TransportSM::start_locate (TransportStateMachine::locate const& l)
+TransportFSM::start_locate (TransportFSM::locate const& l)
 {
 	std::cout << "tfsm::start_locate\n";
 	_stopped_to_locate = true;
-	api.locate (l.target, l.with_roll, l.with_flush, l.with_loop, l.force);
+	api->locate (l.target, l.with_roll, l.with_flush, l.with_loop, l.force);
 }
 
 void
-TransportSM::butler_completed_transport_work (TransportStateMachine::butler_done const&)
+TransportFSM::butler_completed_transport_work (TransportFSM::butler_done const&)
 {
 	std::cout << "tfsm::butler_completed_transport_work\n";
-	api.butler_completed_transport_work ();
+	api->butler_completed_transport_work ();
 }
 
 void
-TransportSM::schedule_butler_for_transport_work (TransportStateMachine::butler_required const&)
+TransportFSM::schedule_butler_for_transport_work (TransportFSM::butler_required const&)
 {
-	api.schedule_butler_for_transport_work ();
+	api->schedule_butler_for_transport_work ();
 }
 
 bool
-TransportSM::should_roll_after_locate (TransportStateMachine::locate_done const &)
+TransportFSM::should_roll_after_locate (TransportFSM::locate_done const &)
 {
-	return api.should_roll_after_locate ();
+	return api->should_roll_after_locate ();
 }
 
 void
-TransportSM::roll_after_locate (TransportStateMachine::locate_done const &)
+TransportFSM::roll_after_locate (TransportFSM::locate_done const &)
 {
-	api.start_transport ();
+	api->start_transport ();
 }
 
 void
-TransportSM::locate_phase_two (TransportStateMachine::butler_done const &)
+TransportFSM::locate_phase_two (TransportFSM::butler_done const &)
 {
 	//assert (_stopped_to_locate);
 	std::cerr << "Locate Phase 2: stl = " << _stopped_to_locate << std::endl;
-	api.butler_completed_transport_work ();
-	api.locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
+	api->butler_completed_transport_work ();
+	api->locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
 }

@@ -55,7 +55,7 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace std;
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->process_event (ev); }
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->backend()->enqueue_event (ev);std::cerr << "queue size now " << _transport_fsm->backend()->get_message_queue_size() << std::endl; }
 
 /** Called by the audio engine when there is work to be done with JACK.
  * @param nframes Number of samples to process.
@@ -75,8 +75,8 @@ Session::process (pframes_t nframes)
 
 	if (non_realtime_work_pending()) {
 		if (!_butler->transport_work_requested ()) {
-			if (_transport_fsm->is_flag_active<TransportStateMachine::ButlerWaiting>()) {
-				TFSM_EVENT (TransportStateMachine::butler_done());
+			if (_transport_fsm->backend()->is_flag_active<TransportFSM::ButlerWaiting>()) {
+				TFSM_EVENT (TransportFSM::butler_done());
 			} else {
 				/* TFSM wasn't waiting for this, but we need it anyway (e.g. initial AdjustCaptureBuffering) */
 				butler_completed_transport_work ();
@@ -116,8 +116,8 @@ Session::process (pframes_t nframes)
 	}
 
 	if (!declick_in_progress) {
-		if (_transport_fsm->is_flag_active<TransportStateMachine::DeclickOutInProgress>()) {
-			TFSM_EVENT (TransportStateMachine::declick_done());
+		if (_transport_fsm->backend()->is_flag_active<TransportFSM::DeclickOutInProgress>()) {
+			TFSM_EVENT (TransportFSM::declick_done());
 		}
 	}
 
@@ -230,7 +230,7 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 			bool b = false;
 
 			if ((ret = (*i)->roll (nframes, start_sample, end_sample, b)) < 0) {
-				_transport_fsm->process_event (TransportStateMachine::stop (false, false));
+				_transport_fsm->backend()->process_event (TransportFSM::stop_transport (false, false));
 				return -1;
 			}
 
@@ -844,7 +844,7 @@ Session::process_event (SessionEvent* ev)
 			/* roll after locate, do not flush, set "with loop"
 			   true only if we are seamless looping
 			*/
-			TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, false, Config->get_seamless_loop(), false));
+			TFSM_EVENT (TransportFSM::locate (ev->target_sample, true, false, Config->get_seamless_loop(), false));
 		}
 		remove = false;
 		del = false;
@@ -852,19 +852,19 @@ Session::process_event (SessionEvent* ev)
 
 	case SessionEvent::Locate:
 		/* args: do not roll after locate, do flush, not with loop, force */
-		TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, false, true, false, ev->yes_or_no));
+		TFSM_EVENT (TransportFSM::locate (ev->target_sample, false, true, false, ev->yes_or_no));
 		_send_timecode_update = true;
 		break;
 
 	case SessionEvent::LocateRoll:
 		/* args: roll after locate, do flush, not with loop, force */
-		TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, true, false, ev->yes_or_no));
+		TFSM_EVENT (TransportFSM::locate (ev->target_sample, true, true, false, ev->yes_or_no));
 		_send_timecode_update = true;
 		break;
 
 	case SessionEvent::Skip:
 		if (Config->get_skip_playback()) {
-			TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, true, false, false));
+			TFSM_EVENT (TransportFSM::locate (ev->target_sample, true, true, false, false));
 			_send_timecode_update = true;
 		}
 		remove = false;
@@ -908,7 +908,7 @@ Session::process_event (SessionEvent* ev)
 	case SessionEvent::StopOnce:
 		if (!non_realtime_work_pending()) {
 			_clear_event_type (SessionEvent::StopOnce);
-			_transport_fsm->process_event (TransportStateMachine::stop (ev->yes_or_no, false));
+			_transport_fsm->backend()->process_event (TransportFSM::stop_transport (ev->yes_or_no, false));
 		}
 		remove = false;
 		del = false;
@@ -916,7 +916,7 @@ Session::process_event (SessionEvent* ev)
 
 	case SessionEvent::RangeStop:
 		if (!non_realtime_work_pending()) {
-			_transport_fsm->process_event (TransportStateMachine::stop (ev->yes_or_no, false));
+			_transport_fsm->backend()->process_event (TransportFSM::stop_transport (ev->yes_or_no, false));
 		}
 		remove = false;
 		del = false;
@@ -924,7 +924,7 @@ Session::process_event (SessionEvent* ev)
 
 	case SessionEvent::RangeLocate:
 		/* args: roll after locate, do flush, not with loop */
-		TFSM_EVENT (TransportStateMachine::locate (ev->target_sample, true, true, false, false));
+		TFSM_EVENT (TransportFSM::locate (ev->target_sample, true, true, false, false));
 		remove = false;
 		del = false;
 		break;
@@ -1186,7 +1186,7 @@ Session::track_transport_master (float slave_speed, samplepos_t slave_transport_
 
 		if (transport_master_tracking_state == Running && _transport_speed == 0.0f) {
 			DEBUG_TRACE (DEBUG::Slave, "slave starts transport\n");
-			TFSM_EVENT (TransportStateMachine::start());
+			TFSM_EVENT (TransportFSM::start_transport());
 		}
 
 	} else { // slave_speed is 0
@@ -1195,7 +1195,7 @@ Session::track_transport_master (float slave_speed, samplepos_t slave_transport_
 
 		if (_transport_speed != 0.0f) {
 			DEBUG_TRACE (DEBUG::Slave, string_compose ("slave stops transport: %1 sample %2 tf %3\n", slave_speed, slave_transport_sample, _transport_sample));
-			_transport_fsm->process_event (TransportStateMachine::stop (false, false));
+			_transport_fsm->backend()->process_event (TransportFSM::stop_transport (false, false));
 		}
 
 		if (slave_transport_sample != _transport_sample) {

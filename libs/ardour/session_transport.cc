@@ -75,7 +75,7 @@ using namespace PBD;
 #endif
 
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->process_event (ev); }
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->backend()->enqueue_event (ev);std::cerr << "queue size now " << _transport_fsm->backend()->get_message_queue_size() << std::endl; }
 
 /* *****************************************************************************
  * REALTIME ACTIONS (to be called on state transitions)
@@ -155,7 +155,7 @@ Session::realtime_stop (bool abort, bool clear_state)
 
 	if (todo) {
 		std::cerr << "Need butler for " << enum_2_string (todo) << std::endl;
-		TFSM_EVENT (TransportStateMachine::butler_required());
+		TFSM_EVENT (TransportFSM::butler_required());
 	}
 }
 
@@ -247,7 +247,7 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 		}
 		loop_changing = false;
 		std::cerr << "no-force locate, location matches, just say done and get one with it\n";
-		TFSM_EVENT (TransportStateMachine::locate_done());
+		TFSM_EVENT (TransportFSM::locate_done());
 		Located (); /* EMIT SIGNAL */
 		return;
 	}
@@ -385,9 +385,9 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 	}
 
 	if (need_butler) {
-		TFSM_EVENT (TransportStateMachine::butler_required());
+		TFSM_EVENT (TransportFSM::butler_required());
 	} else {
-		TFSM_EVENT (TransportStateMachine::locate_done());
+		TFSM_EVENT (TransportFSM::locate_done());
 	}
 
 	loop_changing = false;
@@ -476,7 +476,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 				_requested_return_sample = destination_sample;
 			}
 
-			TFSM_EVENT (TransportStateMachine::stop (abort, false));
+			TFSM_EVENT (TransportFSM::stop_transport (abort, false));
 		}
 
 	} else if (transport_stopped() && speed == 1.0) {
@@ -513,7 +513,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 			_engine.transport_start ();
 			_count_in_once = false;
 		} else {
-			TFSM_EVENT (TransportStateMachine::start());
+			TFSM_EVENT (TransportFSM::start_transport());
 		}
 
 	} else {
@@ -567,7 +567,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 
 		if (todo) {
 			add_post_transport_work (todo);
-			TFSM_EVENT (TransportStateMachine::butler_required());
+			TFSM_EVENT (TransportFSM::butler_required());
 		}
 
 		DEBUG_TRACE (DEBUG::Transport, string_compose ("send TSC3 with speed = %1\n", _transport_speed));
@@ -747,7 +747,7 @@ Session::butler_completed_transport_work ()
 	std::cerr << "PoST-BUTLER, locate to do? " << (ptw & PostTransportLocate) << std::endl;
 
 	if (ptw & PostTransportLocate) {
-		TFSM_EVENT (TransportStateMachine::locate_done());
+		TFSM_EVENT (TransportFSM::locate_done());
 	}
 
 	set_next_event ();
@@ -771,7 +771,7 @@ Session::maybe_stop (samplepos_t limit)
 		if (synced_to_engine () && config.get_jack_time_master ()) {
 			_engine.transport_stop ();
 		} else if (!synced_to_engine ()) {
-			TFSM_EVENT (TransportStateMachine::stop());
+			TFSM_EVENT (TransportFSM::stop_transport ());
 		}
 		return true;
 	}
@@ -880,11 +880,11 @@ Session::set_play_loop (bool yn, double speed)
 				   rolling, do not locate to loop start.
 				*/
 				if (!transport_rolling() && (speed != 0.0)) {
-					TFSM_EVENT (TransportStateMachine::locate (loc->start(), true, true, false, true));
+					TFSM_EVENT (TransportFSM::locate (loc->start(), true, true, false, true));
 				}
 			} else {
 				if (speed != 0.0) {
-					TFSM_EVENT (TransportStateMachine::locate (loc->start(), true, true, false, true));
+					TFSM_EVENT (TransportFSM::locate (loc->start(), true, true, false, true));
 				}
 			}
 		}
@@ -1782,7 +1782,7 @@ Session::unset_play_loop ()
 		if (Config->get_seamless_loop()) {
 			/* likely need to flush track buffers: this will locate us to wherever we are */
 			add_post_transport_work (PostTransportLocate);
-			TFSM_EVENT (TransportStateMachine::butler_required());
+			TFSM_EVENT (TransportFSM::butler_required());
 		}
 		TransportStateChange (); /* EMIT SIGNAL */
 	}

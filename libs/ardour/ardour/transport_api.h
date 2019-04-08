@@ -32,7 +32,7 @@ class LIBARDOUR_API TransportAPI
 	virtual ~TransportAPI() {}
 
   private:
-	friend class TransportSM;
+	friend struct TransportFSM;
 
 	virtual void locate (samplepos_t, bool with_roll, bool with_flush, bool with_loop=false, bool force=false, bool with_mmc=true) = 0;
 	virtual void stop_transport (bool abort = false, bool clear_state = false) = 0;

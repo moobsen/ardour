@@ -155,7 +155,7 @@ class Source;
 class Speakers;
 class TempoMap;
 class TransportMaster;
-class TransportSM;
+struct TransportFSM;
 class Track;
 class UI_TransportMaster;
 class VCAManager;
@@ -1426,7 +1426,7 @@ private:
 
 	Butler* _butler;
 
-	TransportSM* _transport_fsm;
+	boost::shared_ptr<TransportFSM> _transport_fsm;
 
 	static const PostTransportWork ProcessCannotProceedMask =
 		PostTransportWork (
