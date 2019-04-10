@@ -38,21 +38,9 @@ TransportFSM::stop_playback (TransportFSM::stop_transport const& s)
 }
 
 void
-TransportFSM::exit_declick (TransportFSM::declick_done const&)
-{
-	std::cout << "tfsm::exit_declick" << std::endl;
-	if (_stopped_to_locate) {
-		api->locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
-	} else {
-		api->stop_transport (false, false);
-	}
-}
-
-void
 TransportFSM::start_locate (TransportFSM::locate const& l)
 {
 	std::cout << "tfsm::start_locate\n";
-	_stopped_to_locate = true;
 	api->locate (l.target, l.with_roll, l.with_flush, l.with_loop, l.force);
 }
 
@@ -81,11 +69,3 @@ TransportFSM::roll_after_locate (TransportFSM::locate_done const &)
 	api->start_transport ();
 }
 
-void
-TransportFSM::locate_phase_two (TransportFSM::butler_done const &)
-{
-	//assert (_stopped_to_locate);
-	std::cerr << "Locate Phase 2: stl = " << _stopped_to_locate << std::endl;
-	api->butler_completed_transport_work ();
-	api->locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
-}

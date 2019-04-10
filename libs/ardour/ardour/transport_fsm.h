@@ -76,110 +76,84 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	boost::shared_ptr<back> backend() { return wp.lock(); }
 
-	typedef msm::active_state_switch_after_exit active_state_switch_policy;
+	typedef msm::active_state_switch_before_transition active_state_switch_policy;
+
+#define define_state(State) \
+	struct State : public msm::front::state<> \
+	{ \
+		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: " # State << std::endl; } \
+		template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: " # State << std::endl;} \
+	}
+
+#define define_state_flag(State,Flag) \
+	struct State : public msm::front::state<> \
+	{ \
+		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: " # State << std::endl; } \
+		template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: " # State << std::endl;} \
+		typedef mpl::vector1<Flag> flag_list; \
+	}
 
 	/* FSM states */
-	struct Stopped : public msm::front::state<>
-	{
-		template <class Event,class FSM> void
-		on_entry (Event const&, FSM&)
-		{
-			std::cout << "entering: Stopped" << std::endl;
-		}
-		template <class Event,class FSM> void
-		on_exit (Event const&, FSM&)
-		{
-			std::cout << "leaving: Stopped" << std::endl;
-		}
-	};
 
-	struct Rolling : public msm::front::state<>
-	{
-		template <class Event,class FSM> void
-		on_entry (Event const&, FSM&)
-		{
-			std::cout << "entering: Rolling" << std::endl;
-		}
-
-		template <class Event,class FSM> void
-		on_exit (Event const&, FSM&)
-		{
-			std::cout << "leaving: Rolling" << std::endl;
-		}
-	};
+	define_state (Stopped);
+	define_state (Rolling);
 
 	struct ButlerWait : public msm::front::state<>
 	{
-		template <class Event,class FSM> void
-		on_entry (Event const&, FSM&)
-		{
-			std::cout << "entering: ButlerWait" << std::endl;
-		}
-
-		template <class Event,class FSM> void
-		on_exit (Event const&, FSM&)
-		{
-			std::cout << "leaving: ButlerWait" << std::endl;
-		}
+		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: ButlerWait" << std::endl; } ;
+		template <class Event,class FSM> void on_exit (Event const&, FSM&) { std::cout << "leaving: ButlerWait" << std::endl; }
 
 
 		typedef mpl::vector1<ButlerWaiting> flag_list;
 		typedef mpl::vector3<start_transport,stop_transport,butler_required> deferred_events;
 	};
 
-	struct MasterWait : public msm::front::state<>
-	{
-		template <class Event,class FSM> void
-		on_entry (Event const&, FSM&)
-		{
-			std::cout << "entering: MasterWait" << std::endl;
-		}
+	define_state (MasterWait);
+	define_state_flag (DeclickOut,DeclickOutInProgress);
 
-		template <class Event,class FSM> void
-		on_exit (Event const&, FSM&)
-		{
-			std::cout << "leaving: MasterWait" << std::endl;
-		}
+	/* Locating is a submachine */
+
+	struct Locating_ : public msm::front::state_machine_def<Locating_> {
+		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating" << std::endl; } ;
+		template <class Event,class FSM> void on_exit (Event const&, FSM&) { std::cout << "leaving: Locating" << std::endl; }
+
+#define define_l_state(State) \
+	struct State : public msm::front::state<> \
+	{ \
+		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating::" # State << std::endl; } \
+		template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: Locating::" # State << std::endl;} \
+	}
+		define_l_state (Stopping);
+		define_l_state (DeclickOut);
+		define_l_state (ButlerWait);
+		define_l_state (LocateInProgress);
+
+		/* actions */
+
+		/* guards */
+
+		typedef Stopping initial_state;
+		typedef Locating_ L; // makes transition table easier
+
+		struct transition_table : mpl::vector<
+		//      Start     Event         Next      Action               Guard
+		//    +----------+-------------+----------+---------------------+----------------------+
+			_row < Stopping  , butler_required ,  ButlerWait, >,
+			_row < Stopping  , butler_done  , DeclickOut >,
+			_row < DeclickOut, butler_required, ButlerWait >,
+			_row < ButlerWait, butler_done, LocateInProgress >
+		> {};
 	};
+	typedef msm::back::state_machine<Locating_> Locating;
 
-
-	struct DeclickOut : public msm::front::state<>
-	{
-		template <class Event,class FSM> void
-		on_entry (Event const&, FSM&)
-		{
-			std::cout << "entering: DeclickOut" << std::endl;
-			PBD::stacktrace (std::cerr, 30);
+	void flush_event_queue () {}
+	void fflush_event_queue () {
+		std::cerr << "FEQ @ depth " << pdepth << std::endl;
+		if (pdepth == 0) {
+			std::cerr << "FEQ " << backend()->get_message_queue_size() << std::endl;
+			backend()->execute_queued_events ();
+			std::cerr << "after FEQ " << backend()->get_message_queue_size() << std::endl;
 		}
-
-		template <class Event,class FSM> void
-		on_exit (Event const&, FSM&)
-		{
-			std::cout << "leaving: DeclickOut" << std::endl;
-			PBD::stacktrace (std::cerr, 30);
-		}
-
-		typedef mpl::vector1<DeclickOutInProgress> flag_list;
-	};
-
-	struct Locating : public msm::front::state<>
-	{
-		template <class Event,class FSM> void
-		on_entry (Event const&, FSM&)
-		{
-			std::cout << "entering: Locating" << std::endl;
-		}
-
-		template <class Event,class FSM> void
-		on_exit (Event const&, FSM&)
-		{
-			std::cout << "leaving: Locating" << std::endl;
-		}
-	};
-
-	void flush_event_queue () {
-		std::cerr << "FEQ " << backend()->get_message_queue_size() << std::endl;
-		wp.lock()->execute_queued_events ();
 	}
 
 	template<typename Event> void enqueue (Event const & e) {
@@ -192,30 +166,16 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	/* transition actions */
 
-	void _start_playback (start_transport const& e) { pdepth++; start_playback (e); pdepth--; flush_event_queue(); }
-	void _stop_playback (stop_transport const& e) { pdepth++; stop_playback (e); pdepth--; flush_event_queue(); }
-	void _start_locate (locate const& e) { pdepth++; start_locate (e); pdepth--; flush_event_queue(); }
-	void _butler_completed_transport_work (butler_done const& e) { pdepth++; butler_completed_transport_work (e); pdepth--; flush_event_queue(); }
-	void _schedule_butler_for_transport_work (butler_required const& e) { pdepth++; schedule_butler_for_transport_work (e); pdepth--; flush_event_queue(); }
-	void _exit_declick (declick_done const& e) { pdepth++; exit_declick (e); pdepth--; flush_event_queue(); }
-	void _locate_phase_two (butler_done const& e) { pdepth++; locate_phase_two (e); pdepth--; flush_event_queue(); }
-	void _roll_after_locate (locate_done const& e) { pdepth++; roll_after_locate (e); pdepth--; flush_event_queue(); }
-
 	void start_playback (start_transport const& p);
 	void stop_playback (stop_transport const& s);
 	void start_locate (locate const& s);
 	void butler_completed_transport_work (butler_done const& s);
 	void schedule_butler_for_transport_work (butler_required const&);
-	void exit_declick (declick_done const&);
-	void locate_phase_two (butler_done const&);
 	void roll_after_locate (locate_done const &);
 
 	/* guards */
 
-	template<typename Event> bool stopped_to_locate(Event const&) { std::cerr << "Stopped to locate: " << _stopped_to_locate << std::endl; return _stopped_to_locate; }
-	template<typename Event> bool stopped_to_stop(Event const&)  { std::cerr << "Stopped to stop: " << !_stopped_to_locate << std::endl; return !_stopped_to_locate; }
-	void mark_for_locate (locate const& l)  { std::cerr << "marking declick out for locate\n"; _stopped_to_locate = true; _last_locate = l; _stop_playback (stop_transport()); }
-	void mark_for_stop (stop_transport const& s)  { std::cerr << "marking declick out for stop\n"; _stopped_to_locate = false; _stop_playback (s); }
+	void stop_for_locate (locate const& l)  { _last_locate = l; stop_playback (stop_transport()); }
 	bool should_roll_after_locate (locate_done const &);
 	bool should_not_roll_after_locate (locate_done const & l)  { return !should_roll_after_locate (l); }
 
@@ -228,41 +188,43 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	struct transition_table : mpl::vector<
 		//      Start     Event         Next      Action               Guard
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row < Stopped  , start_transport       , Rolling  , &T::_start_playback                         >,
-		_row  < Stopped  , stop_transport        , Stopped                                               >,
-		a_row < Stopped  , locate      , Locating , &T::mark_for_locate                        >,
-		a_row < Stopped  , butler_done , Stopped  , &T::_butler_completed_transport_work        >,
-		a_row < Stopped  , butler_required , ButlerWait  , &T::_schedule_butler_for_transport_work >,
+		a_row < Stopped  , start_transport       , Rolling    , &T::start_playback                     >,
+		_row  < Stopped  , stop_transport        , Stopped                                              >,
+		// stopped, locate can skip declick out and butlerwait and move directly to Locate2
+		a_row < Stopped  , locate                , Locating  , &T::start_locate                       >,
+		a_row < Stopped  , butler_required       , ButlerWait , &T::schedule_butler_for_transport_work >,
+		a_row < Stopped  , butler_done           , Stopped    , &T::butler_completed_transport_work    >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row < Rolling  , stop_transport        , DeclickOut, &T::mark_for_stop                        >,
-		_row  < Rolling  , start_transport       , Rolling                                              >,
-		a_row < Rolling  , locate      , DeclickOut , &T::mark_for_locate                     >,
-		_row  < Rolling  , butler_done , Rolling                                              >,
+		_row  < Rolling  , start_transport       , Rolling                                    >,
+		a_row < Rolling  , stop_transport        , DeclickOut , &T::stop_playback             >,
+		a_row < Rolling  , locate                , Locating , &T::stop_for_locate           >,
+		_row  < Rolling  , butler_done           , Rolling                                    >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		row   < DeclickOut , declick_done , Locating, &T::_exit_declick, &T::stopped_to_locate >,
-		row   < DeclickOut , declick_done , Stopped,  &T::_exit_declick, &T::stopped_to_stop   >,
-		a_row < DeclickOut , butler_required , ButlerWait, &T::_schedule_butler_for_transport_work >,
+		// this is likely: butler is requested while still in Declick out
+		a_row < DeclickOut , butler_required , ButlerWait, &T::schedule_butler_for_transport_work >,
+		//  this is unlikely: declick too a long time and we got into  ButlerWait first
+		_row < ButlerWait , declick_done , ButlerWait >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		row   < Locating , locate_done , Rolling, &T::_roll_after_locate, &T::should_roll_after_locate >,
 		g_row < Locating , locate_done , Stopped, &T::should_not_roll_after_locate >,
-		a_row < Locating , stop_transport        , Stopped  , &T::_stop_playback                         >,
-		_row  < Locating , start_transport       , Rolling                                              >,
-		_row  < Locating , locate      , Rolling                                              >,
-		_row  < Locating , butler_done , Locating                                             >,
-		a_row < Locating , butler_required , ButlerWait  , &T::_schedule_butler_for_transport_work >,
+		row   < Locating , locate_done , Rolling, &T::roll_after_locate, &T::should_roll_after_locate >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		row   < ButlerWait , butler_done , Stopped , &T::_butler_completed_transport_work, &T::stopped_to_stop                     >,
-		row   < ButlerWait , butler_done , Locating , &T::_locate_phase_two, &T::stopped_to_locate                     >,
-		//a_row < ButlerWait , locate , ButlerWait , &T::_schedule_butler_for_transport_work >,
-		a_row < ButlerWait , butler_required , ButlerWait , &T::_schedule_butler_for_transport_work >,
-		boost::msm::front::Row < ButlerWait , start_transport , boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >,
-		boost::msm::front::Row < ButlerWait , stop_transport , boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >
+		a_row   < ButlerWait , butler_done , Stopped , &T::butler_completed_transport_work >,
+		a_row < ButlerWait , butler_required , ButlerWait , &T::schedule_butler_for_transport_work >,
+		//a_row < ButlerWait , locate , ButlerWait , &T::schedule_butler_for_transport_work >,
+
+		// Deferrals
+
+#define defer(start_state,ev) boost::msm::front::Row<start_state, ev, boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >
+
+		//defer (Locating1, start_transport),
+		//defer (Locating1, stop_transport),
+		defer (ButlerWait, start_transport),
+		defer (ButlerWait, stop_transport)
 		//    +----------+-------------+----------+---------------------+----------------------+
 		> {};
 
 	typedef int activate_deferred_events;
 
-	bool _stopped_to_locate;
 	locate _last_locate;
 	int pdepth;
 

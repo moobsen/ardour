@@ -105,6 +105,8 @@ Session::overwrite_some_buffers (Track* t)
 	}
 
 	add_post_transport_work (PostTransportOverWrite);
+	PBD::stacktrace (std::cerr, 30);
+
 	_butler->schedule_transport_work ();
 }
 
