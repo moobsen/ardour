@@ -15,6 +15,8 @@ namespace mpl = boost::mpl;
 namespace ARDOUR
 {
 
+class TransportAPI;
+
 struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 {
 	/* events to be delivered to the FSM */
@@ -61,22 +63,22 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	struct ButlerWaiting {};
 	struct DeclickOutInProgress {};
 
-	// Pick a back-end
-	typedef msm::back::state_machine<TransportFSM> back;
-
-	boost::weak_ptr<back> wp;
-
-	static boost::shared_ptr<back> create(TransportAPI& api) {
-		boost::shared_ptr<back> p (new back);
-		p->wp = p;
-		p->api = &api;
-		p->pdepth = 0;
-		return p;
-	}
-
-	boost::shared_ptr<back> backend() { return wp.lock(); }
-
 	typedef msm::active_state_switch_before_transition active_state_switch_policy;
+
+	/* transition actions */
+
+	void start_playback (start_transport const& p);
+	void stop_playback (stop_transport const& s);
+	void start_locate (locate const& s);
+	void butler_completed_transport_work (butler_done const& s);
+	void schedule_butler_for_transport_work (butler_required const&);
+	void roll_after_locate (locate_done const &);
+
+	/* guards */
+
+	void stop_for_locate (locate const& l)  { _last_locate = l; stop_playback (stop_transport()); }
+	bool should_roll_after_locate (locate_done const &);
+	bool should_not_roll_after_locate (locate_done const & l)  { return !should_roll_after_locate (l); }
 
 #define define_state(State) \
 	struct State : public msm::front::state<> \
@@ -133,28 +135,67 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		/* guards */
 
 		typedef Stopping initial_state;
+
+		/* constructor (with argument, because we need to refer to the outer FSM) */
+
+		typedef msm::back::state_machine<TransportFSM> OuterFSM;
+		boost::weak_ptr<OuterFSM> _outer;
+
+		Locating_ (boost::shared_ptr<OuterFSM> o) : _outer (o) { std::cerr << "outer constructed Locating with " << _outer.lock() << std::endl; }
+		Locating_ (const Locating_& other) : _outer (other._outer) { std::cerr << "Copy construction Locating_ from " << &other << " outer = " << _outer.lock() << std::endl; }
+
+		/* this will be called, unfortunately, when the outerFSM
+		   constructs its default states. Then we immediately replace the
+		   Locating state with one that has a valid outerFSM reference.
+		*/
+
+		Locating_ () { std::cerr << "default constructed Locating (null _outer)\n"; }
+
+		/* transition table */
+
 		typedef Locating_ L; // makes transition table easier
+
+		struct _schedule_butler_for_transport_work {
+			template <class Fsm,class Evt,class SourceState,class TargetState>
+			void operator()(Evt const&, Fsm& fsm, SourceState&,TargetState& ) {
+				std::cerr << "locating::schedule_butler_for_transport_work" << std::endl;
+				fsm._outer.lock()->schedule_butler_for_transport_work (butler_required());
+			}
+		};
 
 		struct transition_table : mpl::vector<
 		//      Start     Event         Next      Action               Guard
 		//    +----------+-------------+----------+---------------------+----------------------+
-			_row < Stopping  , butler_required ,  ButlerWait, >,
+			boost::msm::front::Row < Stopping  , butler_required ,  ButlerWait , _schedule_butler_for_transport_work, boost::msm::front::none >,
 			_row < Stopping  , butler_done  , DeclickOut >,
-			_row < DeclickOut, butler_required, ButlerWait >,
+			boost::msm::front::Row < DeclickOut, butler_required, ButlerWait , _schedule_butler_for_transport_work, boost::msm::front::none >,
 			_row < ButlerWait, butler_done, LocateInProgress >
 		> {};
+
 	};
+
 	typedef msm::back::state_machine<Locating_> Locating;
 
-	void flush_event_queue () {}
-	void fflush_event_queue () {
-		std::cerr << "FEQ @ depth " << pdepth << std::endl;
-		if (pdepth == 0) {
-			std::cerr << "FEQ " << backend()->get_message_queue_size() << std::endl;
-			backend()->execute_queued_events ();
-			std::cerr << "after FEQ " << backend()->get_message_queue_size() << std::endl;
-		}
+	// Pick a back-end
+	typedef msm::back::state_machine<TransportFSM> back;
+
+	boost::weak_ptr<back> wp;
+
+	static boost::shared_ptr<back> create(TransportAPI& api) {
+
+		boost::shared_ptr<back> p (new back ());
+
+		Locating l (p);
+
+		p->set_states (msm::back::states_ << l);
+
+		p->wp = p;
+		p->api = &api;
+		p->pdepth = 0;
+		return p;
 	}
+
+	boost::shared_ptr<back> backend() { return wp.lock(); }
 
 	template<typename Event> void enqueue (Event const & e) {
 		if (pdepth > 0) {
@@ -163,21 +204,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 			backend()->process_event (e);
 		}
 	}
-
-	/* transition actions */
-
-	void start_playback (start_transport const& p);
-	void stop_playback (stop_transport const& s);
-	void start_locate (locate const& s);
-	void butler_completed_transport_work (butler_done const& s);
-	void schedule_butler_for_transport_work (butler_required const&);
-	void roll_after_locate (locate_done const &);
-
-	/* guards */
-
-	void stop_for_locate (locate const& l)  { _last_locate = l; stop_playback (stop_transport()); }
-	bool should_roll_after_locate (locate_done const &);
-	bool should_not_roll_after_locate (locate_done const & l)  { return !should_roll_after_locate (l); }
 
 	/* the initial state */
 	typedef Stopped initial_state;
