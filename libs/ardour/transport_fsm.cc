@@ -58,13 +58,13 @@ TransportFSM::schedule_butler_for_transport_work (TransportFSM::butler_required 
 }
 
 bool
-TransportFSM::should_roll_after_locate (TransportFSM::locate_done const &)
+TransportFSM::should_roll_after_locate (TransportFSM::locate_complete const &)
 {
 	return api->should_roll_after_locate ();
 }
 
 void
-TransportFSM::roll_after_locate (TransportFSM::locate_done const &)
+TransportFSM::roll_after_locate (TransportFSM::locate_complete const &)
 {
 	api->start_transport ();
 }
