@@ -38,6 +38,14 @@ TransportFSM::stop_playback (TransportFSM::stop_transport const& s)
 }
 
 void
+TransportFSM::save_locate_and_stop (TransportFSM::locate const & l)
+{
+	std::cout << "tfsm::save_locate_and_stop" << std::endl;
+	_last_locate = l;
+	stop_playback (stop_transport());
+}
+
+void
 TransportFSM::start_locate (TransportFSM::locate const& l)
 {
 	std::cout << "tfsm::start_locate\n";
@@ -58,13 +66,15 @@ TransportFSM::schedule_butler_for_transport_work (TransportFSM::butler_required 
 }
 
 bool
-TransportFSM::should_roll_after_locate (TransportFSM::locate_complete const &)
+TransportFSM::should_roll_after_locate (TransportFSM::exit_from_locating const &)
 {
-	return api->should_roll_after_locate ();
+	bool ret = api->should_roll_after_locate ();
+	std::cerr << "tfsm::should_roll_after_locate() ? " << ret << std::endl;
+	return ret;
 }
 
 void
-TransportFSM::roll_after_locate (TransportFSM::locate_complete const &)
+TransportFSM::roll_after_locate (TransportFSM::exit_from_locating const &)
 {
 	api->start_transport ();
 }

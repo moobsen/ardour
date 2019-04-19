@@ -319,6 +319,7 @@ Session::Session (AudioEngine &eng,
 	, _vca_manager (new VCAManager (*this))
 	, _selection (new CoreSelection (*this))
 	, _global_locate_pending (false)
+	, was_waiting_on_butler (false)
 {
 	uint32_t sr = 0;
 
