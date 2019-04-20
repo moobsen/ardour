@@ -60,6 +60,12 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	struct locate_done {};
 
+	/* this event is used to exit from the Locating submachine back to the
+	 * main/outer state machine. It is required to be convertible from the
+	 * event that triggers this from inside the Locating submachine,
+	 * "locate_done"
+	 */
+
 	struct exit_from_locating {
 		exit_from_locating () {}
 		exit_from_locating (locate_done const&) {}
@@ -68,7 +74,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	/* Flags */
 
-	struct ButlerWaiting {};
 	struct DeclickOutInProgress {};
 
 	typedef msm::active_state_switch_before_transition active_state_switch_policy;
@@ -114,7 +119,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		template <class Event,class FSM> void on_exit (Event const&, FSM&) { std::cout << "leaving: ButlerWait" << std::endl; }
 
 
-		typedef mpl::vector1<ButlerWaiting> flag_list;
 		typedef mpl::vector3<start_transport,stop_transport,butler_required> deferred_events;
 	};
 
@@ -170,15 +174,15 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		typedef msm::back::state_machine<TransportFSM> OuterFSM;
 		boost::weak_ptr<OuterFSM> _outer;
 
-		Locating_ (boost::shared_ptr<OuterFSM> o) : _outer (o) { std::cerr << "outer constructed Locating with " << _outer.lock() << std::endl; }
-		Locating_ (const Locating_& other) : _outer (other._outer) { std::cerr << "Copy construction Locating_ from " << &other << " outer = " << _outer.lock() << std::endl; }
+		Locating_ (boost::shared_ptr<OuterFSM> o) : _outer (o) { }
+		Locating_ (const Locating_& other) : _outer (other._outer) { }
 
 		/* this will be called, unfortunately, when the outerFSM
 		   constructs its default states. Then we immediately replace the
 		   Locating state with one that has a valid outerFSM reference.
 		*/
 
-		Locating_ () { std::cerr << "default constructed Locating (null _outer)\n"; }
+		Locating_ () {}
 
 		/* functors. These are used to call methods of the outer FSM
 		 * (There seems to be no other way to do this)
@@ -209,7 +213,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 			/* When we enter this submachine from a stopped state,
 			 * the locate event is forwarded to us, AfTER the outer 
 			 * state machine has taken action. This is a feature of
-			 * "direct entry" into a sub-machine, boost::msm will
+			 * "direct entry" into a sub-machine: boost::msm will
 			 * not execute actions for the inner transition, so the
 			 * action must be in the outer machine.
 			 */
