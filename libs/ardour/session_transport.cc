@@ -740,6 +740,7 @@ Session::butler_completed_transport_work ()
 	PostTransportWork ptw = post_transport_work ();
 
 	std::cerr << "Butler done, RT cleanup for " << enum_2_string (ptw) << std::endl;
+	PBD::stacktrace (std::cerr, 20);
 
 	if (ptw & PostTransportAudition) {
 		if (auditioner && auditioner->auditioning()) {
@@ -765,6 +766,7 @@ Session::butler_completed_transport_work ()
 void
 Session::schedule_butler_for_transport_work ()
 {
+	was_waiting_on_butler = true;
 	_butler->schedule_transport_work ();
 }
 

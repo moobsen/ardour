@@ -24,12 +24,10 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	struct butler_done {};
 
 	struct locate_done {};
-	struct locate_complete  {};
 
 	struct exit_from_locating {
 		exit_from_locating () {}
-		exit_from_locating (locate_complete const&) {}
-		exit_from_locating (butler_done const&) {}
+		template<typename E> exit_from_locating (E const&) {}
 	};
 
 	struct butler_required {};
@@ -125,6 +123,9 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	/* Locating is a submachine */
 
 	struct Locating_ : public msm::front::state_machine_def<Locating_> {
+
+		typedef msm::active_state_switch_before_transition active_state_switch_policy;
+
 		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating" << std::endl; } ;
 		template <class Event,class FSM> void on_exit (Event const&, FSM&) { std::cout << "leaving: Locating" << std::endl; }
 
@@ -205,13 +206,19 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		//    +----------+-------------+----------+---------------------+----------------------+
 
 			/* When we enter this submachine from a stopped state,
-			 * the locate event is forwarded to us, and we take
-			 * action.
+			 * the locate event is forwarded to us, AfTER the outer 
+			 * state machine has taken action. This is a feature of
+			 * "direct entry" into a sub-machine, boost::msm will
+			 * not execute actions for the inner transition, so the
+			 * action must be in the outer machine.
 			 */
 
 			_row < LocateInProgress, locate,  LocateInProgress >,
 
-			/* we enter this sub-machine in Stopping, with the
+			/* We may we enter this sub-machine in Stopping
+			 * (because we were rolling when the locate request
+			 * arrived). Again, no action because that was done by
+			 * the outer machine.
 			*/
 			_row  < Stopping , locate , Stopping >,
 
@@ -235,16 +242,17 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 			boost::msm::front::Row < LocateInProgress  , butler_required ,  ButlerWaitOnLocate , _schedule_butler_for_transport_work, boost::msm::front::none >,
 
+			/* once the butler is done, back to LocateInProgress
+			 * while we wait for the RT part of a locate to
+			 * complete (this will be synchronous, so "waiting" is
+			 * perhaps not the best term.
+			 */
+
+			_row < ButlerWaitOnLocate, butler_done, LocateInProgress >,
+
 			/* once the butler is done with the non-realtime part
 			   of the locate, we are done and can exit this submachine
 			*/
-			_row < ButlerWaitOnLocate, locate_done, Exit >,
-			_row < ButlerWaitOnLocate, butler_done, Exit >,
-
-			/* it is possible that no work is required to complete
-			 * the locate, in which case we will get this
-			 * transition.
-			 */
 
 			_row < LocateInProgress, locate_done, Exit >
 		> {};
