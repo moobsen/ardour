@@ -23,13 +23,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	struct butler_done {};
 
-	struct locate_done {};
-
-	struct exit_from_locating {
-		exit_from_locating () {}
-		template<typename E> exit_from_locating (E const&) {}
-	};
-
 	struct butler_required {};
 	struct declick_done {};
 	struct start_transport {};
@@ -63,6 +56,14 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		bool with_flush;
 		bool with_loop;
 		bool force;
+	};
+
+	struct locate_done {};
+
+	struct exit_from_locating {
+		exit_from_locating () {}
+		exit_from_locating (locate_done const&) {}
+		//exit_from_locating (locate const&) {}
 	};
 
 	/* Flags */

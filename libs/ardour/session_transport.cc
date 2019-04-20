@@ -75,7 +75,7 @@ using namespace PBD;
 #endif
 
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev);std::cerr << "queue size now " << _transport_fsm->backend()->get_message_queue_size() << std::endl; }
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev); }
 
 /* *****************************************************************************
  * REALTIME ACTIONS (to be called on state transitions)
@@ -154,7 +154,6 @@ Session::realtime_stop (bool abort, bool clear_state)
 	}
 
 	if (todo) {
-		std::cerr << "Need butler for " << enum_2_string (todo) << std::endl;
 		TFSM_EVENT (TransportFSM::butler_required());
 	}
 }
@@ -233,7 +232,6 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("rt-locate to %1, roll %2 flush %3 loop-enabled %4 force %5 mmc %6\n",
 	                                               target_sample, with_roll, with_flush, for_loop_enabled, force, with_mmc));
-	PBD::stacktrace (std::cerr, 30);
 
 	if (!force && _transport_sample == target_sample && !loop_changing && !for_loop_enabled) {
 
@@ -252,8 +250,6 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 		Located (); /* EMIT SIGNAL */
 		return;
 	}
-
-	cerr << "... now doing the actual locate to " << target_sample << " from " << _transport_sample << endl;
 
 	// Update Timecode time
 	_transport_sample = target_sample;
@@ -739,8 +735,7 @@ Session::butler_completed_transport_work ()
 	ENSURE_PROCESS_THREAD;
 	PostTransportWork ptw = post_transport_work ();
 
-	std::cerr << "Butler done, RT cleanup for " << enum_2_string (ptw) << std::endl;
-	PBD::stacktrace (std::cerr, 20);
+	DEBUG_TRACE (DEBUG::Transport, string_compose ("Butler done, RT cleanup for %1\n", enum_2_string (ptw)));
 
 	if (ptw & PostTransportAudition) {
 		if (auditioner && auditioner->auditioning()) {

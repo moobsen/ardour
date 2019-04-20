@@ -55,7 +55,7 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace std;
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev);std::cerr << "queue size now " << _transport_fsm->backend()->get_message_queue_size() << std::endl; }
+#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev); }
 
 /** Called by the audio engine when there is work to be done with JACK.
  * @param nframes Number of samples to process.
@@ -74,7 +74,6 @@ Session::process (pframes_t nframes)
 	}
 
 	if (non_realtime_work_pending()) {
-		std::cerr << "NRWP, was waiting ? " << was_waiting_on_butler << " TWR " << _butler->transport_work_requested() << std::endl;
 		if (!_butler->transport_work_requested ()) {
 			if (was_waiting_on_butler) {
 				TFSM_EVENT (TransportFSM::butler_done());
@@ -545,10 +544,8 @@ Session::process_with_events (pframes_t nframes)
 
 				if (samples_moved < 0) {
 					decrement_transport_position (-samples_moved);
-					DEBUG_TRACE (DEBUG::Transport, string_compose ("DEcrement transport by %1 to %2\n", samples_moved, _transport_sample));
 				} else if (samples_moved) {
 					increment_transport_position (samples_moved);
-					DEBUG_TRACE (DEBUG::Transport, string_compose ("INcrement transport by %1 to %2\n", samples_moved, _transport_sample));
 				} else {
 					DEBUG_TRACE (DEBUG::Transport, "no transport motion\n");
 				}
@@ -629,7 +626,6 @@ Session::process_without_events (pframes_t nframes)
 		return;
 	} else {
 		samples_moved = (samplecnt_t) nframes * _transport_speed;
-		DEBUG_TRACE (DEBUG::Transport, string_compose ("no-events, plan to move transport by %1 (%2 @ %3)\n", samples_moved, nframes, _transport_speed));
 	}
 
 	if (!_exporting && !timecode_transmission_suspended()) {
@@ -829,7 +825,6 @@ Session::process_event (SessionEvent* ev)
 		if (ev->type != SessionEvent::Locate) {
 			immediate_events.insert (immediate_events.end(), ev);
 			_remove_event (ev);
-			std::cerr << "no events, NRWP.... " << std::hex << post_transport_work() << std::dec << " event was " << ev->type << std::endl;
 			return;
 		}
 	}
@@ -881,7 +876,6 @@ Session::process_event (SessionEvent* ev)
 
 
 	case SessionEvent::SetTransportSpeed:
-		std::cerr << "SE::STS " << ev->speed << std::endl;
 		set_transport_speed (ev->speed, ev->target_sample, ev->yes_or_no, ev->second_yes_or_no, ev->third_yes_or_no);
 		break;
 
