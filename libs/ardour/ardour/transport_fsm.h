@@ -204,14 +204,25 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 			}
 		};
 
+		struct _interrupt_locate_with_locate  {
+			template <class Fsm,class SourceState,class TargetState>
+			void operator()(locate const& l, Fsm& fsm, SourceState&,TargetState& ) {
+				std::cerr << "locating::_interrupt_locate_with_locate" << std::endl;
+				fsm._outer.lock()->start_locate (l);
+			}
+		};
+
 		/* transition table */
+
+		void say_hello (locate const&) { std::cerr << "hello\n"; }
+		typedef Locating_ T;
 
 		struct transition_table : mpl::vector<
 		//      Start     Event         Next      Action               Guard
 		//    +----------+-------------+----------+---------------------+----------------------+
 
 			/* When we enter this submachine from a stopped state,
-			 * the locate event is forwarded to us, AfTER the outer 
+			 * the locate event is forwarded to us, AfTER the outer
 			 * state machine has taken action. This is a feature of
 			 * "direct entry" into a sub-machine: boost::msm will
 			 * not execute actions for the inner transition, so the
@@ -222,8 +233,8 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 			/* We may we enter this sub-machine in Stopping
 			 * (because we were rolling when the locate request
-			 * arrived). Again, no action because that was done by
-			 * the outer machine.
+			 * arrived). Again, the necessary action because that
+			 * was done by the outer machine.
 			*/
 			_row  < Stopping , locate , Stopping >,
 
@@ -259,9 +270,22 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 			   of the locate, we are done and can exit this submachine
 			*/
 
-			_row < LocateInProgress, locate_done, Exit >
+			_row < LocateInProgress, locate_done, Exit >,
+
+			/* if a new locate request arrives while we're in the
+			 * middling of dealing with this one, make it interrupt
+			 * the current locate with a new target.
+			 */
+
+			boost::msm::front::Row < LocateInProgress, locate, LocateInProgress, _interrupt_locate_with_locate, boost::msm::front::none >,
+			boost::msm::front::Row < ButlerWaitOnLocate, locate, ButlerWaitOnLocate, _interrupt_locate_with_locate, boost::msm::front::none >,
+			boost::msm::front::Row < ButlerWaitOnStop, locate, ButlerWaitOnStop, _interrupt_locate_with_locate, boost::msm::front::none >,
+			boost::msm::front::Row < Stopping, locate, Stopping, _interrupt_locate_with_locate, boost::msm::front::none >,
+			boost::msm::front::Row < DeclickOut, locate, Stopping, _interrupt_locate_with_locate, boost::msm::front::none >
+
 		> {};
 
+		typedef mpl::vector3<start_transport,stop_transport,butler_required> deferred_events;
 	};
 
 	typedef msm::back::state_machine<Locating_> Locating;
@@ -318,7 +342,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		//    +----------+-------------+----------+---------------------+----------------------+
 		// this is likely: butler is requested while still in Declick out
 		a_row < DeclickOut , butler_required , ButlerWait, &T::schedule_butler_for_transport_work >,
-		//  this is unlikely: declick too a long time and we got into  ButlerWait first
+		//  this is unlikely: declick took a long time and we got into  ButlerWait first
 		_row < ButlerWait , declick_done , ButlerWait >,
 		//    +----------+-------------+----------+---------------------+----------------------+
 		g_row < Locating::exit_pt<Locating::Exit> , exit_from_locating , Stopped, &T::should_not_roll_after_locate >,
@@ -332,8 +356,8 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 #define defer(start_state,ev) boost::msm::front::Row<start_state, ev, boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >
 
-		//defer (Locating1, start_transport),
-		//defer (Locating1, stop_transport),
+		defer (Locating, start_transport),
+		defer (Locating, stop_transport),
 		defer (ButlerWait, start_transport),
 		defer (ButlerWait, stop_transport)
 		//    +----------+-------------+----------+---------------------+----------------------+
@@ -345,6 +369,15 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	locate _last_locate;
 
 	TransportAPI* api;
+
+
+	// Replaces the default no-transition response.
+	template <class FSM,class Event>
+	void no_transition(Event const& e, FSM&,int state)
+	{
+		std::cout << "FSM: no transition from state " << state
+		          << " on event " << typeid(e).name() << std::endl;
+	}
 };
 
 } /* end namespace ARDOUR */

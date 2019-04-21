@@ -245,7 +245,6 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 			set_transport_speed (1.0, 0, false);
 		}
 		loop_changing = false;
-		std::cerr << "no-force locate, location matches, just say done and get one with it\n";
 		TFSM_EVENT (TransportFSM::locate_done());
 		Located (); /* EMIT SIGNAL */
 		return;
@@ -1391,6 +1390,7 @@ Session::non_realtime_locate ()
 		for (RouteList::iterator i = rl->begin(); i != rl->end(); ++i) {
 			(*i)->non_realtime_locate (tf);
 			if (sc != g_atomic_int_get (&_seek_counter)) {
+				std::cerr << "\n\nLOCATE INTERRUPTED BY LOCATE!!!\n\n";
 				goto restart;
 			}
 		}
