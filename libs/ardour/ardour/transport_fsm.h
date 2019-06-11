@@ -83,6 +83,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	void start_playback (start_transport const& p);
 	void stop_playback (stop_transport const& s);
 	void start_locate (locate const& s);
+	void interrupt_locate (locate const& s);
 	void butler_completed_transport_work (butler_done const& s);
 	void schedule_butler_for_transport_work (butler_required const&);
 	void roll_after_locate (exit_from_locating const &);
@@ -151,7 +152,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		};
 
 		/* When we leave this submachine, we will deliver a
-		 * "locate_complete" event to the outer state machine.
+		 * "exit-from-locating" event to the outer state machine.
 		 */
 
 		struct Exit : public msm::front::exit_pseudo_state<exit_from_locating> {
@@ -200,7 +201,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 			template <class Fsm,class SourceState,class TargetState>
 			void operator()(locate const& l, Fsm& fsm, SourceState&,TargetState& ) {
 				std::cerr << "locating::_interrupt_locate_with_locate" << std::endl;
-				fsm._outer.lock()->start_locate (l);
+				fsm._outer.lock()->interrupt_locate (l);
 			}
 		};
 

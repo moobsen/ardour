@@ -719,8 +719,8 @@ Session::should_roll_after_locate () const
 	std::cerr << "Should roll after locate ? " << r
 	          << " exsync " << !config.get_external_sync()
 	          << " ap " << auto_play_legal << " && " << config.get_auto_play()
-	          << " export " << !_exporting
-	          << " ptroll " << (post_transport_work() & PostTransportRoll)
+	          << " not exporting " << !_exporting
+	          << " post-transport-roll " << (post_transport_work() & PostTransportRoll)
 	          << std::endl;
 	return r;
 }

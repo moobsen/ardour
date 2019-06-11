@@ -49,7 +49,18 @@ void
 TransportFSM::start_locate (TransportFSM::locate const& l)
 {
 	std::cout << "tfsm::start_locate\n";
+	_last_locate = l;
 	api->locate (l.target, l.with_roll, l.with_flush, l.with_loop, l.force);
+}
+
+void
+TransportFSM::interrupt_locate (TransportFSM::locate const& l)
+{
+	std::cout << "tfsm::interrupt_locate\n";
+	/* maintain original "with-roll" choice of initial locate, even though
+	 * we are interrupting the locate to start a new one.
+	 */
+	api->locate (l.target, _last_locate.with_roll, l.with_flush, l.with_loop, l.force);
 }
 
 void
