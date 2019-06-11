@@ -110,17 +110,11 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	/* FSM states */
 
+	define_state (WaitingForButler);
+	define_state (NotWaitingForButler);
+
 	define_state (Stopped);
 	define_state (Rolling);
-
-	struct ButlerWait : public msm::front::state<>
-	{
-		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: ButlerWait" << std::endl; } ;
-		template <class Event,class FSM> void on_exit (Event const&, FSM&) { std::cout << "leaving: ButlerWait" << std::endl; }
-
-
-		typedef mpl::vector3<start_transport,stop_transport,butler_required> deferred_events;
-	};
 
 	define_state (MasterWait);
 	define_state_flag (DeclickOut,DeclickOutInProgress);
@@ -134,24 +128,26 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating" << std::endl; } ;
 		template <class Event,class FSM> void on_exit (Event const&, FSM&) { std::cout << "leaving: Locating" << std::endl; }
 
-#define define_l_state(State) \
-		struct State : public msm::front::state<> \
-		{ \
-			template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating::" # State << std::endl; } \
-			template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: Locating::" # State << std::endl;} \
-		}
-
-		define_l_state (ButlerWaitOnStop);
-		define_l_state (ButlerWaitOnLocate);
-
-		struct LocateInProgress : public msm::front::state<>, msm::front::explicit_entry<0> {
-			template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating::LocateInProgress" << std::endl; }
-			template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: Locating::LocateInProgress" << std::endl;}
+		struct WaitingToLocate : public msm::front::state<>, msm::front::explicit_entry<0> {
+			template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating::WaitingToLocate" << std::endl; }
+			template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: Locating::WaitingToLocate" << std::endl;}
 		};
 
-		struct Stopping : public msm::front::state<>, msm::front::explicit_entry<0> {
-			template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating::Stopping" << std::endl; }
-			template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: Locating::Stopping" << std::endl;}
+		struct WaitingToEndLocate : public msm::front::state<> {
+			template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating::WaitingToEndLocate" << std::endl; }
+			template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: Locating::WaitingToEndLocate" << std::endl;}
+		};
+
+		/* Note: WaitingToStop is semantically equivalent to DeclickOut
+		 * in the outer FSM. We have to use our own state here,
+		 * however, and to avoid confusion, we give it a different
+		 * name.
+		 */
+
+		struct WaitingToStop : public msm::front::state<>, msm::front::explicit_entry<0> {
+			template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: Locating::WaitingToStop" << std::endl; }
+			template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: Locating::WaitingToStop" << std::endl;}
+			typedef mpl::vector1<DeclickOutInProgress> flag_list;
 		};
 
 		/* When we leave this submachine, we will deliver a
@@ -163,11 +159,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 			template <class Event,class FSM> void on_exit(Event const&,FSM& ) {std::cout << "leaving: Locating::Exit" << std::endl;}
 		};
 
-		typedef Stopping initial_state;
-
-		/* something to store a locate request in while we stop/declick etc. */
-
-		locate _last_locate;
+		typedef boost::mpl::vector<WaitingToLocate,NotWaitingForButler> initial_state;
 
 		/* constructor (with argument, because we need to refer to the outer FSM) */
 
@@ -214,9 +206,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 		/* transition table */
 
-		void say_hello (locate const&) { std::cerr << "hello\n"; }
-		typedef Locating_ T;
-
 		struct transition_table : mpl::vector<
 		//      Start     Event         Next      Action               Guard
 		//    +----------+-------------+----------+---------------------+----------------------+
@@ -229,59 +218,60 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 			 * action must be in the outer machine.
 			 */
 
-			_row < LocateInProgress, locate,  LocateInProgress >,
+			// Does not not actually need to be defined; the target
+			// state will be entered by default c/o boost::msm
+			//_row < WaitingToLocate, locate,  WaitingToLocate >,
 
-			/* We may we enter this sub-machine in Stopping
-			 * (because we were rolling when the locate request
-			 * arrived). Again, the necessary action because that
+			/* We may we enter this sub-machine needing to first
+			 * wait to stop (because we were rolling when the
+			 * locate request arrived). Again, the necessary action
 			 * was done by the outer machine.
 			*/
-			_row  < Stopping , locate , Stopping >,
+
+			// Does not not actually need to be defined; the target
+			// state will be entered by default c/o boost::msm
+			// _row  < WaitingToStop , locate , WaitingToStop >,
 
 			/* now actual transitions while in this sub-machine */
 
-			boost::msm::front::Row < Stopping , butler_required , ButlerWaitOnStop , _schedule_butler_for_transport_work, boost::msm::front::none >,
-
-			/* Once the butler is done stopping the transport, we
-			   are now in a DeclickOut state, waiting for everything
-			   to finish declicking.
-			*/
-			_row < ButlerWaitOnStop  , butler_done  , DeclickOut >,
+			boost::msm::front::Row < NotWaitingForButler , butler_required , WaitingForButler , _schedule_butler_for_transport_work, boost::msm::front::none >,
+			boost::msm::front::Row < WaitingForButler , butler_required , WaitingForButler , _schedule_butler_for_transport_work, boost::msm::front::none >,
+			boost::msm::front::Row < WaitingForButler , butler_done  , NotWaitingForButler, msm::front::none, msm::front::none >,
 
 			/* Once Declick is finished we can actually start the
+
 			   locate. This will need the butler again.
 			*/
-			boost::msm::front::Row < DeclickOut, declick_done, LocateInProgress , _start_locate, boost::msm::front::none >,
+			boost::msm::front::Row < WaitingToStop, declick_done, WaitingToLocate , _start_locate, boost::msm::front::none >,
 
 			/* call for the butler when asked
 			 */
 
-			boost::msm::front::Row < LocateInProgress  , butler_required ,  ButlerWaitOnLocate , _schedule_butler_for_transport_work, boost::msm::front::none >,
+			boost::msm::front::Row < WaitingToLocate, butler_required,  WaitingToLocate , _schedule_butler_for_transport_work, boost::msm::front::none >,
 
-			/* once the butler is done, back to LocateInProgress
-			 * while we wait for the RT part of a locate to
-			 * complete (this will be synchronous, so "waiting" is
-			 * perhaps not the best term.
+			/* once the butler is done with the non-RT part of
+			 * locate, back to WaitingToEndLocate while we wait for
+			 * the RT part of a locate to complete (this will be
+			 * synchronous, so "waiting" is perhaps not the best
+			 * term.
 			 */
 
-			_row < ButlerWaitOnLocate, butler_done, LocateInProgress >,
+			_row < WaitingForButler, butler_done, WaitingToEndLocate >,
 
 			/* once the butler is done with the non-realtime part
 			   of the locate, we are done and can exit this submachine
 			*/
 
-			_row < LocateInProgress, locate_done, Exit >,
+			_row < WaitingToEndLocate, locate_done, Exit >,
+			_row < WaitingToLocate,    locate_done, Exit >,
 
 			/* if a new locate request arrives while we're in the
 			 * middling of dealing with this one, make it interrupt
 			 * the current locate with a new target.
 			 */
 
-			boost::msm::front::Row < LocateInProgress, locate, LocateInProgress, _interrupt_locate_with_locate, boost::msm::front::none >,
-			boost::msm::front::Row < ButlerWaitOnLocate, locate, ButlerWaitOnLocate, _interrupt_locate_with_locate, boost::msm::front::none >,
-			boost::msm::front::Row < ButlerWaitOnStop, locate, ButlerWaitOnStop, _interrupt_locate_with_locate, boost::msm::front::none >,
-			boost::msm::front::Row < Stopping, locate, Stopping, _interrupt_locate_with_locate, boost::msm::front::none >,
-			boost::msm::front::Row < DeclickOut, locate, Stopping, _interrupt_locate_with_locate, boost::msm::front::none >
+			boost::msm::front::Row < WaitingToLocate, locate, WaitingToLocate, _interrupt_locate_with_locate, boost::msm::front::none >,
+			boost::msm::front::Row < WaitingToStop, locate, WaitingToStop, _interrupt_locate_with_locate, boost::msm::front::none >
 
 		> {};
 
@@ -330,36 +320,35 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		//    +----------+-------------+----------+---------------------+----------------------+
 		a_row < Stopped  , start_transport       , Rolling    , &T::start_playback                     >,
 		_row  < Stopped  , stop_transport        , Stopped                                              >,
-		a_row < Stopped  , butler_required       , ButlerWait , &T::schedule_butler_for_transport_work >,
+		a_row < Stopped  , butler_required       , WaitingForButler , &T::schedule_butler_for_transport_work >,
 		a_row < Stopped  , butler_done           , Stopped    , &T::butler_completed_transport_work    >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row  < Stopped  , locate                , Locating::direct<Locating_::LocateInProgress>, &T::start_locate>,
-		a_row  < Rolling  , locate                , Locating::direct<Locating_::Stopping>,  &T::save_locate_and_stop>,
+		a_row  < Stopped  , locate                , Locating::direct<Locating_::WaitingToLocate>, &T::start_locate>,
+		a_row  < Rolling  , locate                , Locating::direct<Locating_::WaitingToStop>,  &T::save_locate_and_stop>,
 		//    +----------+-------------+----------+---------------------+----------------------+
 		_row  < Rolling  , start_transport       , Rolling                                    >,
 		a_row < Rolling  , stop_transport        , DeclickOut , &T::stop_playback             >,
 		_row  < Rolling  , butler_done           , Rolling                                    >,
 		//    +----------+-------------+----------+---------------------+----------------------+
 		// this is likely: butler is requested while still in Declick out
-		a_row < DeclickOut , butler_required , ButlerWait, &T::schedule_butler_for_transport_work >,
+		a_row < DeclickOut , butler_required , WaitingForButler, &T::schedule_butler_for_transport_work >,
 		//  this is unlikely: declick took a long time and we got into  ButlerWait first
-		_row < ButlerWait , declick_done , ButlerWait >,
+		_row < WaitingForButler , declick_done , WaitingForButler >,
 		//    +----------+-------------+----------+---------------------+----------------------+
 		g_row < Locating::exit_pt<Locating::Exit> , exit_from_locating , Stopped, &T::should_not_roll_after_locate >,
 		row   < Locating::exit_pt<Locating::Exit> , exit_from_locating , Rolling, &T::roll_after_locate, &T::should_roll_after_locate >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row   < ButlerWait , butler_done , Stopped , &T::butler_completed_transport_work >,
-		a_row < ButlerWait , butler_required , ButlerWait , &T::schedule_butler_for_transport_work >,
-		//a_row < ButlerWait , locate , ButlerWait , &T::schedule_butler_for_transport_work >,
+		a_row   < WaitingForButler , butler_done , Stopped , &T::butler_completed_transport_work >,
+		a_row < WaitingForButler , butler_required , WaitingForButler , &T::schedule_butler_for_transport_work >
 
 		// Deferrals
 
 #define defer(start_state,ev) boost::msm::front::Row<start_state, ev, boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >
 
-		defer (Locating, start_transport),
-		defer (Locating, stop_transport),
-		defer (ButlerWait, start_transport),
-		defer (ButlerWait, stop_transport)
+		//defer (Locating, start_transport),
+		//defer (Locating, stop_transport),
+		//defer (ButlerWait, start_transport),
+		//defer (ButlerWait, stop_transport)
 		//    +----------+-------------+----------+---------------------+----------------------+
 		> {};
 

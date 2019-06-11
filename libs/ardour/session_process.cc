@@ -74,14 +74,12 @@ Session::process (pframes_t nframes)
 	}
 
 	if (non_realtime_work_pending()) {
+		cerr << "NRT work pending\n";
 		if (!_butler->transport_work_requested ()) {
-			if (was_waiting_on_butler) {
-				TFSM_EVENT (TransportFSM::butler_done());
-				was_waiting_on_butler = false;
-			} else {
-				/* TFSM wasn't waiting for this, but we need it anyway (e.g. initial AdjustCaptureBuffering) */
-				butler_completed_transport_work ();
-			}
+			cerr << "butler is done, waiting? " << was_waiting_on_butler << endl;
+			butler_completed_transport_work ();
+		} else {
+			cerr << "butler is not done yet\n";
 		}
 	}
 

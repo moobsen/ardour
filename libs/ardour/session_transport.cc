@@ -733,6 +733,7 @@ Session::butler_completed_transport_work ()
 {
 	ENSURE_PROCESS_THREAD;
 	PostTransportWork ptw = post_transport_work ();
+	bool send_butler_done = true;
 
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("Butler done, RT cleanup for %1\n", enum_2_string (ptw)));
 
@@ -748,6 +749,7 @@ Session::butler_completed_transport_work ()
 
 	if (ptw & PostTransportLocate) {
 		TFSM_EVENT (TransportFSM::locate_done());
+		send_butler_done = false;
 	}
 
 	set_next_event ();
@@ -755,12 +757,19 @@ Session::butler_completed_transport_work ()
 	   know were handled ?
 	*/
 	set_post_transport_work (PostTransportWork (0));
+
+	if (was_waiting_on_butler && send_butler_done) {
+		TFSM_EVENT (TransportFSM::butler_done());
+	}
+
+	was_waiting_on_butler = false;
 }
 
 void
 Session::schedule_butler_for_transport_work ()
 {
 	was_waiting_on_butler = true;
+	std::cerr << "Now waiting on butler for transport work\n";
 	_butler->schedule_transport_work ();
 }
 
