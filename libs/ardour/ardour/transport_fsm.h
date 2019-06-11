@@ -248,6 +248,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 			 */
 
 			boost::msm::front::Row < WaitingToLocate, butler_required,  WaitingToLocate , _schedule_butler_for_transport_work, boost::msm::front::none >,
+			boost::msm::front::Row < WaitingToEndLocate, butler_required, WaitingToEndLocate, _schedule_butler_for_transport_work, boost::msm::front::none >,
 
 			/* once the butler is done with the non-RT part of
 			 * locate, back to WaitingToEndLocate while we wait for
@@ -258,9 +259,9 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 			_row < WaitingForButler, butler_done, WaitingToEndLocate >,
 
-			/* once the butler is done with the non-realtime part
-			   of the locate, we are done and can exit this submachine
-			*/
+			/* once RT context (process thread) is done with the RT
+			 * part of the locate, we are done and can exit this submachine
+			 */
 
 			_row < WaitingToEndLocate, locate_done, Exit >,
 			_row < WaitingToLocate,    locate_done, Exit >,
