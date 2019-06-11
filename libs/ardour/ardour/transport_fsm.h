@@ -84,7 +84,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	void stop_playback (stop_transport const& s);
 	void start_locate (locate const& s);
 	void interrupt_locate (locate const& s);
-	void butler_completed_transport_work (butler_done const& s);
 	void schedule_butler_for_transport_work (butler_required const&);
 	void roll_after_locate (exit_from_locating const &);
 	void save_locate_and_stop (locate const &);
@@ -323,7 +322,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		a_row < Stopped  , start_transport       , Rolling    , &T::start_playback                     >,
 		_row  < Stopped  , stop_transport        , Stopped                                              >,
 		a_row < Stopped  , butler_required       , WaitingForButler , &T::schedule_butler_for_transport_work >,
-		a_row < Stopped  , butler_done           , Stopped    , &T::butler_completed_transport_work    >,
+		_row  < Stopped  , butler_done           , Stopped    >,
 		//    +----------+-------------+----------+---------------------+----------------------+
 		a_row  < Stopped  , locate                , Locating::direct<Locating_::WaitingToLocate>, &T::start_locate>,
 		a_row  < Rolling  , locate                , Locating::direct<Locating_::WaitingToStop>,  &T::save_locate_and_stop>,
@@ -340,7 +339,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		g_row < Locating::exit_pt<Locating::Exit> , exit_from_locating , Stopped, &T::should_not_roll_after_locate >,
 		row   < Locating::exit_pt<Locating::Exit> , exit_from_locating , Rolling, &T::roll_after_locate, &T::should_roll_after_locate >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row   < WaitingForButler , butler_done , Stopped , &T::butler_completed_transport_work >,
+		_row   < WaitingForButler , butler_done , Stopped >,
 		a_row < WaitingForButler , butler_required , WaitingForButler , &T::schedule_butler_for_transport_work >
 
 		// Deferrals
