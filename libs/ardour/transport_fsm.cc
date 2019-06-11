@@ -64,13 +64,6 @@ TransportFSM::interrupt_locate (TransportFSM::locate const& l)
 }
 
 void
-TransportFSM::butler_completed_transport_work (TransportFSM::butler_done const&)
-{
-	std::cout << "tfsm::butler_completed_transport_work\n";
-	api->butler_completed_transport_work ();
-}
-
-void
 TransportFSM::schedule_butler_for_transport_work (TransportFSM::butler_required const&)
 {
 	api->schedule_butler_for_transport_work ();
