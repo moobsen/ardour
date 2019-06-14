@@ -54,6 +54,13 @@ TransportFSM::start_locate (TransportFSM::locate const& l)
 }
 
 void
+TransportFSM::start_saved_locate (TransportFSM::declick_done const&)
+{
+	std::cout << "tfsm::start_saved_locate\n";
+	api->locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
+}
+
+void
 TransportFSM::interrupt_locate (TransportFSM::locate const& l)
 {
 	std::cout << "tfsm::interrupt_locate\n";
@@ -70,7 +77,7 @@ TransportFSM::schedule_butler_for_transport_work (TransportFSM::butler_required 
 }
 
 bool
-TransportFSM::should_roll_after_locate (TransportFSM::exit_from_locating const &)
+TransportFSM::should_roll_after_locate (TransportFSM::locate_done const &)
 {
 	bool ret = api->should_roll_after_locate ();
 	std::cerr << "tfsm::should_roll_after_locate() ? " << ret << std::endl;
@@ -78,7 +85,7 @@ TransportFSM::should_roll_after_locate (TransportFSM::exit_from_locating const &
 }
 
 void
-TransportFSM::roll_after_locate (TransportFSM::exit_from_locating const &)
+TransportFSM::roll_after_locate (TransportFSM::locate_done const &)
 {
 	api->start_transport ();
 }
