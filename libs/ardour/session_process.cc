@@ -115,7 +115,7 @@ Session::process (pframes_t nframes)
 	}
 
 	if (!declick_in_progress) {
-		if (_transport_fsm->backend()->is_flag_active<TransportFSM::DeclickOutInProgress>()) {
+		if (_transport_fsm->backend()->is_flag_active<TransportFSM::DeclickInProgress>()) {
 			TFSM_EVENT (TransportFSM::declick_done());
 		}
 	}

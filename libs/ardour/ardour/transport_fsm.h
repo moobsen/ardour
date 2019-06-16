@@ -22,7 +22,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	/* events to be delivered to the FSM */
 
 	struct butler_done {};
-
 	struct butler_required {};
 	struct declick_done {};
 	struct start_transport {};
@@ -62,7 +61,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	/* Flags */
 
-	struct DeclickOutInProgress {};
+	struct DeclickInProgress {};
 	struct LocateInProgress {};
 
 	typedef msm::active_state_switch_before_transition active_state_switch_policy;
@@ -113,9 +112,9 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	define_state (Stopped);
 	define_state (Rolling);
 	define_state (MasterWait);
-	define_state_flag2(DeclickToLocate,LocateInProgress,DeclickOutInProgress);
-	define_state_flag(WaitingToEndLocate,LocateInProgress);
-	define_state_flag(DeclickOut,DeclickOutInProgress);
+	define_state_flag2(DeclickToLocate,LocateInProgress,DeclickInProgress);
+	define_state_flag(WaitingForLocate,LocateInProgress);
+	define_state_flag(DeclickToStop,DeclickInProgress);
 
 	// Pick a back-end
 	typedef msm::back::state_machine<TransportFSM> back;
@@ -154,31 +153,31 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		_row  < Stopped  , butler_done           , Stopped    >,
 
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row  < Stopped  , locate                , WaitingToEndLocate, &T::start_locate>,  /* will send butler_required, then locate_done */
+		a_row  < Stopped  , locate                , WaitingForLocate, &T::start_locate>,  /* will send butler_required, then locate_done */
 		a_row  < Rolling  , locate                , DeclickToLocate, &T::save_locate_and_stop>, /* will send declick_done, butler_required, then locate_done */
 		//    +----------+-------------+----------+---------------------+----------------------+
 		_row  < Rolling  , start_transport       , Rolling                                    >,
-		a_row < Rolling  , stop_transport        , DeclickOut , &T::stop_playback             >,
+		a_row < Rolling  , stop_transport        , DeclickToStop , &T::stop_playback             >,
 		_row  < Rolling  , butler_done           , Rolling                                    >,
 		//    +----------+-------------+----------+---------------------+----------------------+
-		a_row  < DeclickToLocate,  declick_done, WaitingToEndLocate, &T::start_saved_locate >,
+		a_row  < DeclickToLocate,  declick_done, WaitingForLocate, &T::start_saved_locate >,
 
-		_row < DeclickOut, declick_done, Stopped >,
+		_row < DeclickToStop, declick_done, Stopped >,
 		_row < WaitingForButler, butler_done , Stopped >,
 
 		a_row < NotWaitingForButler, butler_required , WaitingForButler , &T::schedule_butler_for_transport_work >,
 		a_row < WaitingForButler, butler_required , WaitingForButler , &T::schedule_butler_for_transport_work >,
 		_row  < WaitingForButler, butler_done  , NotWaitingForButler >,
 
-		row  < WaitingToEndLocate, locate_done, Rolling, &T::roll_after_locate, &T::should_roll_after_locate >,
-		g_row < WaitingToEndLocate, locate_done, Stopped, &T::should_not_roll_after_locate >,
+		row  < WaitingForLocate, locate_done, Rolling, &T::roll_after_locate, &T::should_roll_after_locate >,
+		g_row < WaitingForLocate, locate_done, Stopped, &T::should_not_roll_after_locate >,
 
 		/* if a new locate request arrives while we're in the
 		 * middling of dealing with this one, make it interrupt
 		 * the current locate with a new target.
 		 */
 
-		a_row < WaitingToEndLocate, locate, WaitingToEndLocate, &T::interrupt_locate >,
+		a_row < WaitingForLocate, locate, WaitingForLocate, &T::interrupt_locate >,
 		a_row < DeclickToLocate, locate, DeclickToLocate, &T::interrupt_locate >
 
 		// Deferrals
