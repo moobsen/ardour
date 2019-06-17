@@ -337,8 +337,6 @@ class LIBARDOUR_API TransportMaster : public PBD::Stateful {
 	TransportRequestType request_mask() const { return _request_mask; }
 	void set_request_mask (TransportRequestType);
 
-	void get_current (double&, samplepos_t&, samplepos_t);
-
 	/* this is set at construction, and not changeable later, so it is not
 	 * a property
 	 */

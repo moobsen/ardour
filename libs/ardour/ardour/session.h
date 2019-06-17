@@ -1225,6 +1225,7 @@ protected:
 	void stop_transport (bool abort = false, bool clear_state = false);
 	void start_transport ();
 	void butler_completed_transport_work ();
+	void post_locate ();
 	void schedule_butler_for_transport_work ();
 	bool should_roll_after_locate () const;
 

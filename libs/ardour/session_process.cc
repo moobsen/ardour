@@ -1093,112 +1093,36 @@ Session::follow_transport_master (pframes_t nframes)
 
 	slave_speed = tmm.get_current_speed_in_process_context();
 	slave_transport_sample = tmm.get_current_position_in_process_context ();
-
-	track_transport_master (slave_speed, slave_transport_sample);
-
-	/* transport sample may have been moved during ::track_transport_master() */
-
 	delta = _transport_sample - slave_transport_sample;
 
 	DEBUG_TRACE (DEBUG::Slave, string_compose ("session at %1, master at %2, delta: %3 res: %4\n", _transport_sample, slave_transport_sample, delta, tmm.current()->resolution()));
 
-	if (transport_master_tracking_state == Running) {
-
-		if (!actively_recording() && abs (delta) > tmm.current()->resolution()) {
-			DEBUG_TRACE (DEBUG::Slave, string_compose ("current slave delta %1 greater than slave resolution %2\n", delta, tmm.current()->resolution()));
-			if (micro_locate (-delta) != 0) {
-				DEBUG_TRACE (DEBUG::Slave, "micro-locate didn't work, set no disk output true\n");
-
-				/* run routes as normal, but no disk output */
-				DiskReader::set_no_disk_output (true);
-			}
-			return true;
+	if (slave_speed != 0.0) {
+		if (_transport_speed == 0.0f) {
+			DEBUG_TRACE (DEBUG::Slave, string_compose ("slave starts transport: %1 sample %2 tf %3\n", slave_speed, slave_transport_sample, _transport_sample));
+			TFSM_EVENT (TransportFSM::start_transport ());
 		}
-
-		if (transport_master_tracking_state == Running) {
-			/* speed is set, we're locked, and good to go */
-			DiskReader::set_no_disk_output (false);
-			return true;
+	} else {
+		if (_transport_speed != 0.0f) {
+			DEBUG_TRACE (DEBUG::Slave, string_compose ("slave stops transport: %1 sample %2 tf %3\n", slave_speed, slave_transport_sample, _transport_sample));
+			TFSM_EVENT (TransportFSM::stop_transport (false, false));
 		}
 	}
+
+	if (!actively_recording() && abs (delta) > tmm.current()->resolution()) {
+		DiskReader::set_no_disk_output (true);
+		return true;
+	}
+
+	/* speed is set, we're locked, and good to go */
+	DiskReader::set_no_disk_output (false);
+	return true;
 
   noroll:
 	/* don't move at all */
 	DEBUG_TRACE (DEBUG::Slave, "no roll\n")
 	no_roll (nframes);
 	return false;
-}
-
-void
-Session::track_transport_master (float slave_speed, samplepos_t slave_transport_sample)
-{
-	boost::shared_ptr<TransportMaster> master (TransportMasterManager::instance().current());
-
-	assert (master);
-
-	DEBUG_TRACE (DEBUG::Slave, string_compose ("session has master tracking state as %1\n", transport_master_tracking_state));
-
-	if (slave_speed != 0.0f) {
-
-		/* slave is running */
-
-		switch (transport_master_tracking_state) {
-		case Stopped:
-			master_wait_end = slave_transport_sample + worst_latency_preroll() + master->seekahead_distance ();
-			DEBUG_TRACE (DEBUG::Slave, string_compose ("slave stopped, but running, requires seekahead to %1, now WAITING\n", master_wait_end));
-			/* we can call locate() here because we are in process context */
-			if (micro_locate (master_wait_end - _transport_sample) != 0) {
-				locate (master_wait_end, false, false);
-			}
-			transport_master_tracking_state = Waiting;
-
-		case Waiting:
-		default:
-			break;
-		}
-
-		if (transport_master_tracking_state == Waiting) {
-
-			DEBUG_TRACE (DEBUG::Slave, string_compose ("master currently at %1, waiting to pass %2\n", slave_transport_sample, master_wait_end));
-
-			if (slave_transport_sample >= master_wait_end) {
-
-				DEBUG_TRACE (DEBUG::Slave, string_compose ("slave start at %1 vs %2\n", slave_transport_sample, _transport_sample));
-
-				transport_master_tracking_state = Running;
-
-				/* now perform a "micro-seek" within the disk buffers to realign ourselves
-				   precisely with the master.
-				*/
-
-				if (micro_locate (slave_transport_sample - _transport_sample) != 0) {
-					cerr << "cannot micro-seek\n";
-					/* XXX what? */
-				}
-			}
-		}
-
-		if (transport_master_tracking_state == Running && _transport_speed == 0.0f) {
-			DEBUG_TRACE (DEBUG::Slave, "slave starts transport\n");
-			TFSM_EVENT (TransportFSM::start_transport());
-		}
-
-	} else { // slave_speed is 0
-
-		/* slave has stopped */
-
-		if (_transport_speed != 0.0f) {
-			DEBUG_TRACE (DEBUG::Slave, string_compose ("slave stops transport: %1 sample %2 tf %3\n", slave_speed, slave_transport_sample, _transport_sample));
-			TFSM_EVENT (TransportFSM::stop_transport (false, false));
-		}
-
-		if (slave_transport_sample != _transport_sample) {
-			DEBUG_TRACE (DEBUG::Slave, string_compose ("slave stopped, move to %1\n", slave_transport_sample));
-			force_locate (slave_transport_sample, false);
-		}
-
-		reset_slave_state();
-	}
 }
 
 void

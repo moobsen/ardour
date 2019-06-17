@@ -400,6 +400,17 @@ Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, boo
 	}
 }
 
+void
+Session::post_locate ()
+{
+	if (transport_master_is_external() && !synced_to_engine()) {
+		const samplepos_t current_master_position = TransportMasterManager::instance().get_current_position_in_process_context();
+		if (abs (current_master_position - _transport_sample) > TransportMasterManager::instance().current()->resolution()) {
+			_last_roll_location = _last_roll_or_reversal_location =  _transport_sample;
+		}
+	}
+}
+
 /** Set the transport speed.
  *  Called from the process thread.
  *  @param speed New speed
@@ -748,6 +759,7 @@ Session::butler_completed_transport_work ()
 	std::cerr << "PoST-BUTLER, locate to do? " << (ptw & PostTransportLocate) << std::endl;
 
 	if (ptw & PostTransportLocate) {
+		post_locate ();
 		TFSM_EVENT (TransportFSM::locate_done());
 		send_butler_done = false;
 	}
