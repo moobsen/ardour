@@ -804,6 +804,7 @@ PortManager::cycle_start (pframes_t nframes, Session* s)
 	if (s && s->rt_tasklist () && fabs (Port::speed_ratio ()) != 1.0) {
 		RTTaskList::TaskList tl;
 		for (Ports::iterator p = _cycle_ports->begin(); p != _cycle_ports->end(); ++p) {
+			std::cerr << "queue cycle start for " << p->second->name() << std::endl;
 			tl.push_back (boost::bind (&Port::cycle_start, p->second, nframes));
 		}
 		s->rt_tasklist()->process (tl);
@@ -821,6 +822,7 @@ PortManager::cycle_end (pframes_t nframes, Session* s)
 	if (s && s->rt_tasklist () && fabs (Port::speed_ratio ()) != 1.0) {
 		RTTaskList::TaskList tl;
 		for (Ports::iterator p = _cycle_ports->begin(); p != _cycle_ports->end(); ++p) {
+			std::cerr << "queue cycle end for " << p->second->name() << std::endl;
 			tl.push_back (boost::bind (&Port::cycle_end, p->second, nframes));
 		}
 		s->rt_tasklist()->process (tl);
@@ -924,6 +926,7 @@ PortManager::cycle_end_fade_out (gain_t base_gain, gain_t gain_step, pframes_t n
 	if (s && s->rt_tasklist () && fabs (Port::speed_ratio ()) != 1.0) {
 		RTTaskList::TaskList tl;
 		for (Ports::iterator p = _cycle_ports->begin(); p != _cycle_ports->end(); ++p) {
+			std::cerr << "queue cycle end (fade) for " << p->second->name() << std::endl;
 			tl.push_back (boost::bind (&Port::cycle_end, p->second, nframes));
 		}
 		s->rt_tasklist()->process (tl);

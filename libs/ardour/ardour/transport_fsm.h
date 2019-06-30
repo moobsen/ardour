@@ -163,7 +163,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		a_row  < DeclickToLocate,  declick_done, WaitingForLocate, &T::start_saved_locate >,
 
 		_row < DeclickToStop, declick_done, Stopped >,
-		_row < WaitingForButler, butler_done , Stopped >,
 
 		a_row < NotWaitingForButler, butler_required , WaitingForButler , &T::schedule_butler_for_transport_work >,
 		a_row < WaitingForButler, butler_required , WaitingForButler , &T::schedule_butler_for_transport_work >,
@@ -178,20 +177,27 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		 */
 
 		a_row < WaitingForLocate, locate, WaitingForLocate, &T::interrupt_locate >,
-		a_row < DeclickToLocate, locate, DeclickToLocate, &T::interrupt_locate >
+		a_row < DeclickToLocate, locate, DeclickToLocate, &T::interrupt_locate >,
 
 		// Deferrals
 
-#define defer(start_state,ev) boost::msm::front::Row<start_state, ev, boost::msm::front::none , boost::msm::front::Defer, boost::msm::front::none >
+#define defer(start_state,ev) boost::msm::front::Row<start_state, ev, start_state, boost::msm::front::Defer, boost::msm::front::none >
 
-		//defer (Locating, start_transport),
-		//defer (Locating, stop_transport),
-		//defer (ButlerWait, start_transport),
-		//defer (ButlerWait, stop_transport)
+		defer (WaitingForButler, start_transport),
+		defer (WaitingForButler, stop_transport),
+		defer (NotWaitingForButler, start_transport),
+		defer (NotWaitingForButler, stop_transport),
+		defer (DeclickToLocate, start_transport),
+		defer (DeclickToLocate, stop_transport),
+		defer (DeclickToStop, start_transport),
+		defer (DeclickToStop, stop_transport),
+		defer (WaitingForLocate, start_transport),
+		defer (WaitingForLocate, stop_transport)
+
 		//    +----------+-------------+----------+---------------------+----------------------+
 		> {};
 
-	// typedef int activate_deferred_events;
+	typedef int activate_deferred_events;
 
 	locate _last_locate;
 

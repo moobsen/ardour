@@ -761,7 +761,6 @@ Session::butler_completed_transport_work ()
 	if (ptw & PostTransportLocate) {
 		post_locate ();
 		TFSM_EVENT (TransportFSM::locate_done());
-		send_butler_done = false;
 	}
 
 	set_next_event ();
@@ -770,7 +769,7 @@ Session::butler_completed_transport_work ()
 	*/
 	set_post_transport_work (PostTransportWork (0));
 
-	if (was_waiting_on_butler && send_butler_done) {
+	if (was_waiting_on_butler) {
 		TFSM_EVENT (TransportFSM::butler_done());
 	}
 
