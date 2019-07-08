@@ -1246,7 +1246,7 @@ DiskReader::get_midi_playback (MidiBuffer& dst, samplepos_t start_sample, sample
 
 	g_atomic_int_add (&_samples_read_from_ringbuffer, nframes);
 
-	if (ms & MonitoringInput) {
+	if (!_no_disk_output && (ms & MonitoringInput)) {
 		dst.merge_from (*target, nframes);
 	}
 
