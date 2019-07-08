@@ -744,7 +744,6 @@ Session::butler_completed_transport_work ()
 {
 	ENSURE_PROCESS_THREAD;
 	PostTransportWork ptw = post_transport_work ();
-	bool send_butler_done = true;
 
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("Butler done, RT cleanup for %1\n", enum_2_string (ptw)));
 
