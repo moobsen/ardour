@@ -715,7 +715,8 @@ enum PortFlags {
 
 	/* non-JACK related flags */
 	Hidden = 0x20,
-	Shadow = 0x40
+	Shadow = 0x40,
+	TransportMasterPort = 0x80
 };
 
 enum MidiPortFlags {
