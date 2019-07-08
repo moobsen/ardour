@@ -1754,7 +1754,6 @@ Playlist::region_changed (const PropertyChange& what_changed, boost::shared_ptr<
 {
 	PropertyChange our_interests;
 	PropertyChange bounds;
-	PropertyChange pos_and_length;
 	bool save = false;
 
 	if (in_set_state || in_flush) {
@@ -1768,9 +1767,6 @@ Playlist::region_changed (const PropertyChange& what_changed, boost::shared_ptr<
 	bounds.add (Properties::start);
 	bounds.add (Properties::position);
 	bounds.add (Properties::length);
-
-	pos_and_length.add (Properties::position);
-	pos_and_length.add (Properties::length);
 
 	if (what_changed.contains (bounds)) {
 		region_bounds_changed (what_changed, region);
