@@ -74,8 +74,8 @@ void
 DiskReader::ReaderChannelInfo::resize (samplecnt_t bufsize)
 {
 	delete rbuf;
-	/* touch memory to lock it */
 	rbuf = new PlaybackBuffer<Sample> (bufsize);
+	/* touch memory to lock it */
 	memset (rbuf->buffer(), 0, sizeof (Sample) * rbuf->bufsize());
 }
 
