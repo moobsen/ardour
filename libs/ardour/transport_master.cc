@@ -444,7 +444,7 @@ TransportMasterViaMIDI::create_midi_port (std::string const & port_name)
 {
 	boost::shared_ptr<Port> p;
 
-	if ((p = AudioEngine::instance()->register_input_port (DataType::MIDI, port_name)) == 0) {
+	if ((p = AudioEngine::instance()->register_input_port (DataType::MIDI, port_name, false, TransportMasterPort)) == 0) {
 		return boost::shared_ptr<Port> ();
 	}
 
