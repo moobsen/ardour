@@ -1457,7 +1457,6 @@ DiskReader::DeclickAmp::apply_gain (AudioBuffer& buf, samplecnt_t n_samples, con
 	uint32_t offset = 0;
 	while (remain > 0) {
 		uint32_t n_proc = remain > max_nproc ? max_nproc : remain;
-		std::cerr << "g = " << g << std::endl;
 		for (uint32_t i = 0; i < n_proc; ++i) {
 			buffer[offset + i] *= g;
 		}
