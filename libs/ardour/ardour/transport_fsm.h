@@ -156,9 +156,9 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		a_row < Stopped,             butler_required, WaitingForButler,  &T::schedule_butler_for_transport_work              >,
 		_row  < Stopped,             butler_done,     Stopped                                                                >,
 		/* will send butler_required, then locate_done */
-		a_row  < Stopped,            locate,          WaitingForLocate,  &T::start_locate                                    >,
+		a_row < Stopped,             locate,          WaitingForLocate,  &T::start_locate                                    >,
 		/* will send declick_done, butler_required, then locate_done */
-		a_row  < Rolling,            locate,          DeclickToLocate,   &T::save_locate_and_stop                            >,
+		a_row < Rolling,             locate,          DeclickToLocate,   &T::save_locate_and_stop                            >,
 		_row  < Rolling,             start_transport, Rolling                                                                >,
 		a_row < Rolling,             stop_transport,  DeclickToStop,     &T::stop_playback                                   >,
 		_row  < Rolling,             butler_done,     Rolling                                                                >,
