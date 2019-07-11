@@ -55,7 +55,7 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace std;
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev); }
+#define TFSM_EVENT(ev) { DEBUG_TRACE (DEBUG::TransportFSMEvents, string_compose ("TFSM(%1)\n", typeid(ev).name())); _transport_fsm->enqueue (ev); }
 
 /** Called by the audio engine when there is work to be done with JACK.
  * @param nframes Number of samples to process.
@@ -74,12 +74,12 @@ Session::process (pframes_t nframes)
 	}
 
 	if (non_realtime_work_pending()) {
-		cerr << "NRT work pending\n";
+		DEBUG_TRACE (DEBUG::Butler, "non-realtime work pending\n");
 		if (!_butler->transport_work_requested ()) {
-			cerr << "butler is done, waiting? " << was_waiting_on_butler << endl;
+			DEBUG_TRACE (DEBUG::Butler, string_compose ("done, waiting? %1\n", was_waiting_on_butler));
 			butler_completed_transport_work ();
 		} else {
-			cerr << "butler is not done yet\n";
+			DEBUG_TRACE (DEBUG::Butler, "not done yet\n");
 		}
 	}
 
@@ -94,13 +94,13 @@ Session::process (pframes_t nframes)
 	 * callig it hold a _processor_lock reader-lock
 	 */
 	boost::shared_ptr<RouteList> r = routes.reader ();
-	bool declick_in_progress = false;
+	bool one_or_more_routes_declicking = false;
 	for (RouteList::const_iterator i = r->begin(); i != r->end(); ++i) {
 		if ((*i)->apply_processor_changes_rt()) {
 			_rt_emit_pending = true;
 		}
 		if ((*i)->declick_in_progress()) {
-			declick_in_progress = true;
+			one_or_more_routes_declicking = true;
 		}
 	}
 	if (_rt_emit_pending) {
@@ -114,7 +114,7 @@ Session::process (pframes_t nframes)
 		}
 	}
 
-	if (!declick_in_progress) {
+	if (!one_or_more_routes_declicking) {
 		if (_transport_fsm->backend()->is_flag_active<TransportFSM::DeclickInProgress>()) {
 			TFSM_EVENT (TransportFSM::declick_done());
 		}
@@ -1097,6 +1097,22 @@ Session::follow_transport_master (pframes_t nframes)
 
 	DEBUG_TRACE (DEBUG::Slave, string_compose ("session at %1, master at %2, delta: %3 res: %4\n", _transport_sample, slave_transport_sample, delta, tmm.current()->resolution()));
 
+	/* This is a heuristic rather than a strictly provable rule. The idea
+	 * is that if we're "far away" from the master, we should locate to its
+	 * current position, and then varispeed to sync with it.
+	 *
+	 * On the other hand, if we're close to it, just varispeed.
+	 */
+
+	if (!actively_recording() && abs (delta) > (5 * current_block_size)) {
+		DiskReader::set_no_disk_output (true);
+		if (!_transport_fsm->locating()) {
+			DEBUG_TRACE (DEBUG::Slave, string_compose ("request locate to master position %1\n", slave_transport_sample));
+			TFSM_EVENT (TransportFSM::locate (slave_transport_sample, true, true, false, false));
+		}
+		return true;
+	}
+
 	if (slave_speed != 0.0) {
 		if (_transport_speed == 0.0f) {
 			DEBUG_TRACE (DEBUG::Slave, string_compose ("slave starts transport: %1 sample %2 tf %3\n", slave_speed, slave_transport_sample, _transport_sample));
@@ -1109,7 +1125,13 @@ Session::follow_transport_master (pframes_t nframes)
 		}
 	}
 
+	/* This is the second part of the "we're not synced yet" code. If we're
+	 * close, but not within the resolution of the master, silence disk
+	 * output but continue to varispeed to get in sync.
+	 */
+
 	if (!actively_recording() && abs (delta) > tmm.current()->resolution()) {
+		/* just varispeed to chase the master, and be silent till we're synced */
 		DiskReader::set_no_disk_output (true);
 		return true;
 	}

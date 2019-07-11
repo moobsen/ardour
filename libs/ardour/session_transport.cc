@@ -75,7 +75,7 @@ using namespace PBD;
 #endif
 
 
-#define TFSM_EVENT(ev) { std::cerr << "TFSM(" << typeid(ev).name() << ")\n"; _transport_fsm->enqueue (ev); }
+#define TFSM_EVENT(ev) { DEBUG_TRACE (DEBUG::TransportFSMEvents, string_compose ("TFSM(%1)\n", typeid(ev).name())); _transport_fsm->enqueue (ev); }
 
 /* *****************************************************************************
  * REALTIME ACTIONS (to be called on state transitions)
@@ -612,7 +612,6 @@ Session::stop_transport (bool abort, bool clear_state)
 	_count_in_once = false;
 
 	if (_transport_speed == 0.0f) {
-		std::cerr << "Already stopped, nothing to do\n";
 		return;
 	}
 
@@ -726,14 +725,8 @@ Session::should_roll_after_locate () const
 {
 	/* a locate must previously have been requested and completed */
 
-	const bool r =  ((!config.get_external_sync() && (auto_play_legal && config.get_auto_play())) && !_exporting) || (post_transport_work() & PostTransportRoll);
-	std::cerr << "Should roll after locate ? " << r
-	          << " exsync " << !config.get_external_sync()
-	          << " ap " << auto_play_legal << " && " << config.get_auto_play()
-	          << " not exporting " << !_exporting
-	          << " post-transport-roll " << (post_transport_work() & PostTransportRoll)
-	          << std::endl;
-	return r;
+	return ((!config.get_external_sync() && (auto_play_legal && config.get_auto_play())) && !_exporting) || (post_transport_work() & PostTransportRoll);
+
 }
 
 /** Do any transport work in the audio thread that needs to be done after the
@@ -754,8 +747,6 @@ Session::butler_completed_transport_work ()
 			process_function = &Session::process_with_events;
 		}
 	}
-
-	std::cerr << "PoST-BUTLER, locate to do? " << (ptw & PostTransportLocate) << std::endl;
 
 	if (ptw & PostTransportLocate) {
 		post_locate ();
@@ -779,7 +770,6 @@ void
 Session::schedule_butler_for_transport_work ()
 {
 	was_waiting_on_butler = true;
-	std::cerr << "Now waiting on butler for transport work\n";
 	_butler->schedule_transport_work ();
 }
 

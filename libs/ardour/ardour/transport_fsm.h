@@ -3,10 +3,14 @@
 
 #include <boost/weak_ptr.hpp>
 #include <boost/msm/back/state_machine.hpp>
+#include <boost/msm/back/tools.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 #include <boost/msm/front/functor_row.hpp>
 
+#include "pbd/demangle.h"
 #include "pbd/stacktrace.h"
+
+#include "ardour/debug.h"
 
 /* state machine */
 namespace msm = boost::msm;
@@ -85,23 +89,23 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 #define define_state(State) \
 	struct State : public msm::front::state<> \
 	{ \
-		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: " # State << std::endl; } \
-		template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: " # State << std::endl;} \
+		template <class Event,class FSM> void on_entry (Event const&, FSM&) { DEBUG_TRACE (PBD::DEBUG::TransportFSMState, "entering: " # State "\n"); } \
+		template <class Event,class FSM> void on_exit (Event const&, FSM&) { DEBUG_TRACE (PBD::DEBUG::TransportFSMState, "leaving: " # State "\n"); } \
 	}
 
 #define define_state_flag(State,Flag) \
 	struct State : public msm::front::state<> \
 	{ \
-		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: " # State << std::endl; } \
-		template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: " # State << std::endl;} \
+		template <class Event,class FSM> void on_entry (Event const&, FSM&) { DEBUG_TRACE (PBD::DEBUG::TransportFSMState, "entering: " # State "\n"); } \
+		template <class Event,class FSM> void on_exit (Event const&, FSM&) { DEBUG_TRACE (PBD::DEBUG::TransportFSMState, "leaving: " # State "\n"); } \
 		typedef mpl::vector1<Flag> flag_list; \
 	}
 
 #define define_state_flag2(State,Flag1,Flag2) \
 	struct State : public msm::front::state<> \
 	{ \
-		template <class Event,class FSM> void on_entry (Event const&, FSM&) { std::cout << "entering: " # State << std::endl; } \
-		template <class Event,class FSM> void on_exit (Event const&, FSM&) {std::cout << "leaving: " # State << std::endl;} \
+		template <class Event,class FSM> void on_entry (Event const&, FSM&) { DEBUG_TRACE (PBD::DEBUG::TransportFSMState, "entering: " # State "\n"); } \
+		template <class Event,class FSM> void on_exit (Event const&, FSM&) { DEBUG_TRACE (PBD::DEBUG::TransportFSMState, "leaving: " # State "\n"); } \
 		typedef mpl::vector2<Flag1,Flag2> flag_list; \
 	}
 
@@ -111,7 +115,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	define_state (NotWaitingForButler);
 	define_state (Stopped);
 	define_state (Rolling);
-	define_state (MasterWait);
 	define_state_flag2(DeclickToLocate,LocateInProgress,DeclickInProgress);
 	define_state_flag(WaitingForLocate,LocateInProgress);
 	define_state_flag(DeclickToStop,DeclickInProgress);
@@ -121,7 +124,8 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	boost::weak_ptr<back> wp;
 
-	bool locating (declick_done const &) { return backend()->is_flag_active<LocateInProgress>(); }
+	bool locating ()                     { return backend()->is_flag_active<LocateInProgress>(); }
+	bool locating (declick_done const &) { return locating(); }
 
 	static boost::shared_ptr<back> create(TransportAPI& api) {
 
@@ -136,6 +140,10 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	template<typename Event> void enqueue (Event const & e) {
 		backend()->process_event (e);
+	}
+
+	template<typename Event> void show_ignore (Event const & e) {
+		std::cerr << "\n\n\nIGNORING " << typeid(e).name() << "\n\n\n";
 	}
 
 	/* the initial state */
@@ -171,6 +179,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		row  < WaitingForLocate, locate_done, Rolling, &T::roll_after_locate, &T::should_roll_after_locate >,
 		g_row < WaitingForLocate, locate_done, Stopped, &T::should_not_roll_after_locate >,
 
+
 		/* if a new locate request arrives while we're in the
 		 * middling of dealing with this one, make it interrupt
 		 * the current locate with a new target.
@@ -179,18 +188,30 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		a_row < WaitingForLocate, locate, WaitingForLocate, &T::interrupt_locate >,
 		a_row < DeclickToLocate, locate, DeclickToLocate, &T::interrupt_locate >,
 
+#if 0
+		/* ignore "real" requests to change state while in intermediate states */
+
+#define ignore(start_state,ev) a_row <start_state, ev, start_state, &T::show_ignore>
+
+		ignore (WaitingForButler, start_transport),
+		ignore (WaitingForButler, stop_transport),
+		ignore (NotWaitingForButler, start_transport),
+		ignore (NotWaitingForButler, stop_transport),
+		ignore (DeclickToLocate, start_transport),
+		ignore (DeclickToLocate, stop_transport),
+		ignore (DeclickToStop, start_transport),
+		ignore (DeclickToStop, stop_transport),
+		ignore (WaitingForLocate, start_transport),
+		ignore (WaitingForLocate, stop_transport)
+
+#endif
 		// Deferrals
 
 #define defer(start_state,ev) boost::msm::front::Row<start_state, ev, start_state, boost::msm::front::Defer, boost::msm::front::none >
 
-		defer (WaitingForButler, start_transport),
-		defer (WaitingForButler, stop_transport),
-		defer (NotWaitingForButler, start_transport),
-		defer (NotWaitingForButler, stop_transport),
 		defer (DeclickToLocate, start_transport),
 		defer (DeclickToLocate, stop_transport),
 		defer (DeclickToStop, start_transport),
-		defer (DeclickToStop, stop_transport),
 		defer (WaitingForLocate, start_transport),
 		defer (WaitingForLocate, stop_transport)
 
@@ -207,8 +228,11 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	template <class FSM,class Event>
 	void no_transition(Event const& e, FSM&,int state)
 	{
-		std::cout << "FSM: no transition from state " << state
-		          << " on event " << typeid(e).name() << std::endl;
+		typedef typename boost::msm::back::recursive_get_transition_table<FSM>::type recursive_stt;
+		typedef typename boost::msm::back::generate_state_set<recursive_stt>::type all_states;
+		std::string stateName;
+		boost::mpl::for_each<all_states,boost::msm::wrap<boost::mpl::placeholders::_1> >(boost::msm::back::get_state_name<recursive_stt>(stateName, state));
+		std::cout << "No transition from state: " << PBD::demangle (stateName) << " on event " << typeid(e).name() << std::endl;
 	}
 };
 

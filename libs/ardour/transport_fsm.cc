@@ -16,31 +16,33 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include "ardour/debug.h"
 #include "ardour/session.h"
 #include "ardour/transport_fsm.h"
 
 using namespace ARDOUR;
+using namespace PBD;
 
 /* transition actions */
 
 void
 TransportFSM::start_playback (TransportFSM::start_transport const& p)
 {
-	std::cout << "tfsm::start_playback" << std::endl;
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::start_playback\n");
 	api->start_transport();
 }
 
 void
 TransportFSM::stop_playback (TransportFSM::stop_transport const& s)
 {
-	std::cout << "tfsm::stop_playback" << std::endl;
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::stop_playback\n");
 	api->stop_transport (s.abort, s.clear_state);
 }
 
 void
 TransportFSM::save_locate_and_stop (TransportFSM::locate const & l)
 {
-	std::cout << "tfsm::save_locate_and_stop" << std::endl;
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::save_locate_and_stop\n");
 	_last_locate = l;
 	stop_playback (stop_transport());
 }
@@ -48,7 +50,7 @@ TransportFSM::save_locate_and_stop (TransportFSM::locate const & l)
 void
 TransportFSM::start_locate (TransportFSM::locate const& l)
 {
-	std::cout << "tfsm::start_locate\n";
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::start_locate\n");
 	_last_locate = l;
 	api->locate (l.target, l.with_roll, l.with_flush, l.with_loop, l.force);
 }
@@ -56,14 +58,14 @@ TransportFSM::start_locate (TransportFSM::locate const& l)
 void
 TransportFSM::start_saved_locate (TransportFSM::declick_done const&)
 {
-	std::cout << "tfsm::start_saved_locate\n";
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::start_save\n");
 	api->locate (_last_locate.target, _last_locate.with_roll, _last_locate.with_flush, _last_locate.with_loop, _last_locate.force);
 }
 
 void
 TransportFSM::interrupt_locate (TransportFSM::locate const& l)
 {
-	std::cout << "tfsm::interrupt_locate\n";
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::interrupt\n");
 	/* maintain original "with-roll" choice of initial locate, even though
 	 * we are interrupting the locate to start a new one.
 	 */
@@ -80,7 +82,7 @@ bool
 TransportFSM::should_roll_after_locate (TransportFSM::locate_done const &)
 {
 	bool ret = api->should_roll_after_locate ();
-	std::cerr << "tfsm::should_roll_after_locate() ? " << ret << std::endl;
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, string_compose ("tfsm::should_roll_after_locate() ? %1\n", ret));
 	return ret;
 }
 
