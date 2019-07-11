@@ -334,9 +334,7 @@ Session::Session (AudioEngine &eng,
 	init_name_id_counter (1); // reset for new sessions, start at 1
 	VCA::set_next_vca_number (1); // reset for new sessions, start at 1
 
-	std::cerr <<"\n\n\n**** STARTING FSM\n\n\n";
 	_transport_fsm->backend()->start ();
-	std::cerr <<"FSM RUNNING\n\n\n";
 
 	pre_engine_init (fullpath); // sets _is_new
 
