@@ -196,7 +196,7 @@ TransportMasterManager::pre_process_transport_masters (pframes_t nframes, sample
 			if (master_dll_initstate == 0) {
 
 				init_transport_master_dll (_master_speed, _master_position);
-				// _master_invalid_this_cycle = true;
+				_master_invalid_this_cycle = true;
 				DEBUG_TRACE (DEBUG::Slave, "no roll3 - still initializing master DLL\n");
 				master_dll_initstate = _master_speed > 0.0 ? 1 : -1;
 
