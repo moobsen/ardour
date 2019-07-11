@@ -142,10 +142,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		backend()->process_event (e);
 	}
 
-	template<typename Event> void show_ignore (Event const & e) {
-		std::cerr << "\n\n\nIGNORING " << typeid(e).name() << "\n\n\n";
-	}
-
 	/* the initial state */
 	typedef boost::mpl::vector<Stopped,NotWaitingForButler> initial_state;
 
@@ -188,23 +184,6 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		a_row < WaitingForLocate, locate, WaitingForLocate, &T::interrupt_locate >,
 		a_row < DeclickToLocate, locate, DeclickToLocate, &T::interrupt_locate >,
 
-#if 0
-		/* ignore "real" requests to change state while in intermediate states */
-
-#define ignore(start_state,ev) a_row <start_state, ev, start_state, &T::show_ignore>
-
-		ignore (WaitingForButler, start_transport),
-		ignore (WaitingForButler, stop_transport),
-		ignore (NotWaitingForButler, start_transport),
-		ignore (NotWaitingForButler, stop_transport),
-		ignore (DeclickToLocate, start_transport),
-		ignore (DeclickToLocate, stop_transport),
-		ignore (DeclickToStop, start_transport),
-		ignore (DeclickToStop, stop_transport),
-		ignore (WaitingForLocate, start_transport),
-		ignore (WaitingForLocate, stop_transport)
-
-#endif
 		// Deferrals
 
 #define defer(start_state,ev) boost::msm::front::Row<start_state, ev, start_state, boost::msm::front::Defer, boost::msm::front::none >
