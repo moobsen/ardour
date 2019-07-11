@@ -151,27 +151,24 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	struct transition_table : mpl::vector<
 		//      Start                Event            Next               Action                Guard
 		//    +----------------------+----------------+------------------+---------------------+----------------------+
-		a_row < Stopped,             start_transport, Rolling,           &T::start_playback                                  >,
-		_row  < Stopped,             stop_transport,  Stopped                                                                >,
-		a_row < Stopped,             butler_required, WaitingForButler,  &T::schedule_butler_for_transport_work              >,
-		_row  < Stopped,             butler_done,     Stopped                                                                >,
-		/* will send butler_required, then locate_done                                                                       */
-		a_row < Stopped,             locate,          WaitingForLocate,  &T::start_locate                                    >,
-		/* will send declick_done, butler_required, then locate_done                                                         */
-		a_row < Rolling,             locate,          DeclickToLocate,   &T::save_locate_and_stop                            >,
-		_row  < Rolling,             start_transport, Rolling                                                                >,
-		a_row < Rolling,             stop_transport,  DeclickToStop,     &T::stop_playback                                   >,
-		_row  < Rolling,             butler_done,     Rolling                                                                >,
-		a_row < DeclickToLocate,     declick_done,    WaitingForLocate,  &T::start_saved_locate                              >,
-		_row  < DeclickToStop,       declick_done,    Stopped                                                                >,
-		a_row < NotWaitingForButler, butler_required, WaitingForButler,  &T::schedule_butler_for_transport_work              >,
-		a_row < WaitingForButler,    butler_required, WaitingForButler,  &T::schedule_butler_for_transport_work              >,
-		_row  < WaitingForButler,    butler_done,     NotWaitingForButler                                                    >,
-		row   < WaitingForLocate,    locate_done,     Rolling,           &T::roll_after_locate, &T::should_roll_after_locate >,
-		g_row < WaitingForLocate,    locate_done,     Stopped,           &T::should_not_roll_after_locate                    >,
-		/* a new locate request arrives while we're in the middling of dealing with one: make it interrupt the current locate with a new target. */
-		a_row < WaitingForLocate,    locate,          WaitingForLocate,  &T::interrupt_locate                                >,
-		a_row < DeclickToLocate,     locate,          DeclickToLocate,   &T::interrupt_locate                                >,
+		a_row < Stopped,             start_transport, Rolling,           &T::start_playback                                      >,
+		_row  < Stopped,             stop_transport,  Stopped                                                                    >,
+		a_row < Stopped,             butler_required, WaitingForButler,  &T::schedule_butler_for_transport_work                  >,
+		_row  < Stopped,             butler_done,     Stopped                                                                    >,
+		a_row < Stopped,             locate,          WaitingForLocate,  &T::start_locate                                        >,
+		g_row < WaitingForLocate,    locate_done,     Stopped,                                  &T::should_not_roll_after_locate >,
+		_row  < Rolling,             butler_done,     Rolling                                                                    >,
+		_row  < Rolling,             start_transport, Rolling                                                                    >,
+		a_row < Rolling,             stop_transport,  DeclickToStop,     &T::stop_playback                                       >,
+		_row  < DeclickToStop,       declick_done,    Stopped                                                                    >,
+		a_row < Rolling,             locate,          DeclickToLocate,   &T::save_locate_and_stop                                >,
+		a_row < DeclickToLocate,     declick_done,    WaitingForLocate,  &T::start_saved_locate                                  >,
+		row   < WaitingForLocate,    locate_done,     Rolling,           &T::roll_after_locate, &T::should_roll_after_locate     >,
+		a_row < NotWaitingForButler, butler_required, WaitingForButler,  &T::schedule_butler_for_transport_work                  >,
+		a_row < WaitingForButler,    butler_required, WaitingForButler,  &T::schedule_butler_for_transport_work                  >,
+		_row  < WaitingForButler,    butler_done,     NotWaitingForButler                                                        >,
+		a_row < WaitingForLocate,    locate,          WaitingForLocate,  &T::interrupt_locate                                    >,
+		a_row < DeclickToLocate,     locate,          DeclickToLocate,   &T::interrupt_locate                                    >,
 
 		// Deferrals
 
