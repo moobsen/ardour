@@ -384,7 +384,7 @@ DiskReader::run (BufferSet& bufs, samplepos_t start_sample, samplepos_t end_samp
 	/* MIDI data handling */
 
   midi:
-	if (/*!_session.declick_out_pending() && */ bufs.count().n_midi() && _midi_buf) {
+	if (!declick_in_progress() && bufs.count().n_midi() && _midi_buf) {
 		MidiBuffer* dst;
 
 		if (_no_disk_output) {
