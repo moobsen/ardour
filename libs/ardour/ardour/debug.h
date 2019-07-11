@@ -46,6 +46,8 @@ namespace PBD {
 		LIBARDOUR_API extern DebugBits LTC;
 		LIBARDOUR_API extern DebugBits TXLTC;
 		LIBARDOUR_API extern DebugBits Transport;
+		LIBARDOUR_API extern DebugBits TransportFSMEvents;
+		LIBARDOUR_API extern DebugBits TransportFSMState;
 		LIBARDOUR_API extern DebugBits Slave;
 		LIBARDOUR_API extern DebugBits SessionEvents;
 		LIBARDOUR_API extern DebugBits MidiIO;
