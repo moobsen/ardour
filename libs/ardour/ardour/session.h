@@ -1433,7 +1433,6 @@ private:
 		PostTransportWork (
 			PostTransportReverse|
 			PostTransportAudition|
-			PostTransportStop|
 			PostTransportClearSubstate);
 
 	gint _post_transport_work; /* accessed only atomic ops */
