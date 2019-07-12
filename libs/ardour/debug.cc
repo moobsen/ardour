@@ -27,7 +27,7 @@ using namespace std;
 
 PBD::DebugBits PBD::DEBUG::MidiSourceIO = PBD::new_debug_bit ("midisourceio");
 PBD::DebugBits PBD::DEBUG::MidiPlaylistIO = PBD::new_debug_bit ("midiplaylistio");
-PBD::DebugBits PBD::DEBUG::MidiDiskstreamIO = PBD::new_debug_bit ("mididiskstreamio");
+PBD::DebugBits PBD::DEBUG::MidiDiskIO = PBD::new_debug_bit ("mididiskio");
 PBD::DebugBits PBD::DEBUG::MidiRingBuffer = PBD::new_debug_bit ("midiringbuffer");
 PBD::DebugBits PBD::DEBUG::SnapBBT = PBD::new_debug_bit ("snapbbt");
 PBD::DebugBits PBD::DEBUG::Latency = PBD::new_debug_bit ("latency");

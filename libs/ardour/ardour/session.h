@@ -1431,7 +1431,6 @@ private:
 
 	static const PostTransportWork ProcessCannotProceedMask =
 		PostTransportWork (
-			PostTransportReverse|
 			PostTransportAudition|
 			PostTransportClearSubstate);
 
