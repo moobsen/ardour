@@ -124,7 +124,6 @@ Session::realtime_stop (bool abort, bool clear_state)
 		add_post_transport_work (todo);
 	}
 
-	_clear_event_type (SessionEvent::StopOnce);
 	_clear_event_type (SessionEvent::RangeStop);
 	_clear_event_type (SessionEvent::RangeLocate);
 

@@ -899,19 +899,8 @@ Session::process_event (SessionEvent* ev)
 		del = false;
 		break;
 
-	case SessionEvent::StopOnce:
-		if (!non_realtime_work_pending()) {
-			_clear_event_type (SessionEvent::StopOnce);
-			TFSM_EVENT (TransportFSM::stop_transport (ev->yes_or_no, false));
-		}
-		remove = false;
-		del = false;
-		break;
-
 	case SessionEvent::RangeStop:
-		if (!non_realtime_work_pending()) {
-			TFSM_EVENT (TransportFSM::stop_transport (ev->yes_or_no, false));
-		}
+		TFSM_EVENT (TransportFSM::stop_transport (ev->yes_or_no, false));
 		remove = false;
 		del = false;
 		break;

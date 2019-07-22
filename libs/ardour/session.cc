@@ -841,7 +841,6 @@ Session::destroy ()
 			case SessionEvent::Skip:
 			case SessionEvent::PunchIn:
 			case SessionEvent::PunchOut:
-			case SessionEvent::StopOnce:
 			case SessionEvent::RangeStop:
 			case SessionEvent::RangeLocate:
 				remove = false;
