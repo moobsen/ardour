@@ -735,8 +735,8 @@ public:
 		return 0;
 	}
 	double transport_speed() const { return _count_in_samples > 0 ? 0. : _transport_speed; }
-	bool   transport_stopped() const { return _transport_speed == 0.0; }
-	bool   transport_rolling() const { return _transport_speed != 0.0 && _count_in_samples == 0 && _remaining_latency_preroll == 0; }
+	bool   transport_stopped() const;
+	bool   transport_rolling() const;
 
 	bool silent () { return _silent; }
 

@@ -2135,3 +2135,15 @@ Session::sync_source_changed (SyncSource type, samplepos_t pos, pframes_t cycle_
 
 	set_dirty();
 }
+
+bool
+Session::transport_stopped() const
+{
+	return _transport_fsm->stopped();
+}
+
+bool
+Session::transport_rolling() const
+{
+	return _transport_fsm->rolling() && _count_in_samples == 0 && _remaining_latency_preroll == 0;
+}
