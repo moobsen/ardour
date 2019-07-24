@@ -67,7 +67,8 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	struct DeclickInProgress {};
 	struct LocateInProgress {};
-
+	struct IsRolling {};
+	
 	typedef msm::active_state_switch_before_transition active_state_switch_policy;
 
 	/* transition actions */
@@ -114,10 +115,10 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	define_state (WaitingForButler);
 	define_state (NotWaitingForButler);
 	define_state (Stopped);
-	define_state (Rolling);
+	define_state_flag (Rolling,IsRolling);
 	define_state_flag2(DeclickToLocate,LocateInProgress,DeclickInProgress);
 	define_state_flag(WaitingForLocate,LocateInProgress);
-	define_state_flag(DeclickToStop,DeclickInProgress);
+	define_state_flag2(DeclickToStop,DeclickInProgress,IsRolling);
 
 	// Pick a back-end
 	typedef msm::back::state_machine<TransportFSM> back;
@@ -126,6 +127,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	bool locating ()                     { return backend()->is_flag_active<LocateInProgress>(); }
 	bool locating (declick_done const &) { return locating(); }
+	bool rolling ()                      { return backend()->is_flag_active<IsRolling>(); }
 
 	static boost::shared_ptr<back> create(TransportAPI& api) {
 
