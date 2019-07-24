@@ -1670,7 +1670,7 @@ private:
 	void flush_all_inserts ();
 	int  micro_locate (samplecnt_t distance);
 
-	void start_locate (samplepos_t, bool with_roll, bool with_flush, bool for_loop_enabled=false, bool force=false);
+	void do_locate (samplepos_t, bool with_roll, bool with_flush, bool for_loop_enabled, bool force, bool with_mmc);
 	void force_locate (samplepos_t sample, bool with_roll = false);
 	void set_transport_speed (double speed, samplepos_t destination_sample, bool abort = false, bool clear_state = false, bool as_default = false);
 	void realtime_stop (bool abort, bool clear_state);

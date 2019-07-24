@@ -150,7 +150,7 @@ Session::start_audio_export (samplepos_t position, bool realtime, bool region_ex
 		}
 	}
 
-	/* we just did the core part of a locate() call above, but
+	/* we just did the core part of a locate call above, but
 	   for the sake of any GUI, put the _transport_sample in
 	   the right place too.
 	*/
@@ -337,6 +337,6 @@ Session::finalize_audio_export ()
 	if (post_export_sync) {
 		config.set_external_sync (true);
 	} else {
-		locate (post_export_position, false, false, false, false, false);
+		do_locate (post_export_position, false, false, false, false, false);
 	}
 }

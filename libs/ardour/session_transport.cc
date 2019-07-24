@@ -169,7 +169,7 @@ Session::realtime_locate ()
 }
 
 void
-Session::start_locate (samplepos_t target_sample, bool with_roll, bool with_flush, bool for_loop_enabled, bool force)
+Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, bool for_loop_enabled, bool force, bool with_mmc)
 {
 	ENSURE_PROCESS_THREAD;
 
@@ -193,7 +193,7 @@ Session::start_locate (samplepos_t target_sample, bool with_roll, bool with_flus
 				   will use the incorrect _transport_sample and report an old
 				   and incorrect time to Jack transport
 				*/
-				locate (target_sample, with_roll, with_flush, for_loop_enabled, force);
+				do_locate (target_sample, with_roll, with_flush, for_loop_enabled, force, with_mmc);
 			}
 
 			/* tell JACK to change transport position, and we will
@@ -209,13 +209,13 @@ Session::start_locate (samplepos_t target_sample, bool with_roll, bool with_flus
 		}
 
 	} else {
-		locate (target_sample, with_roll, with_flush, for_loop_enabled, force);
+		do_locate (target_sample, with_roll, with_flush, for_loop_enabled, force, with_mmc);
 	}
 }
 
 /** @param with_mmc true to send a MMC locate command when the locate is done */
 void
-Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, bool for_loop_enabled, bool force, bool with_mmc)
+Session::do_locate (samplepos_t target_sample, bool with_roll, bool with_flush, bool for_loop_enabled, bool force, bool with_mmc)
 {
 	ENSURE_PROCESS_THREAD;
 
