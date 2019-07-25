@@ -64,6 +64,7 @@ namespace ARDOUR {
 class AxisView;
 class MixerStrip;
 class PluginSelector;
+class MixerSnapshotList;
 class MixerGroupTabs;
 class MonitorSection;
 class VCAMasterStrip;
@@ -176,6 +177,7 @@ private:
 	Gtk::ComboBoxText     favorite_plugins_tag_combo;
 	ArdourWidgets::VPane  rhs_pane1;
 	ArdourWidgets::VPane  rhs_pane2;
+	ArdourWidgets::VPane  rhs_pane3;
 	ArdourWidgets::HPane  inner_pane;
 	Gtk::VBox             strip_group_box;
 	Gtk::HBox             strip_packer;
@@ -191,6 +193,8 @@ private:
 	Gtk::Button           add_vca_button;
 
 	MixerGroupTabs* _group_tabs;
+
+	MixerSnapshotList* _mix_snaps;
 
 	bool on_scroll_event (GdkEventScroll*);
 	bool on_vca_scroll_event (GdkEventScroll*);

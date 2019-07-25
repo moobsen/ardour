@@ -87,6 +87,7 @@
 #include "ardour/audioengine.h"
 #include "ardour/audiofilesource.h"
 #include "ardour/automation_watch.h"
+#include "ardour/directory_names.h"
 #include "ardour/disk_reader.h"
 #include "ardour/disk_writer.h"
 #include "ardour/filename_extensions.h"
@@ -3099,7 +3100,7 @@ ARDOUR_UI::save_template_dialog_response (int response, SaveTemplateDialog* d)
 								_("A template already exists with that name. Do you want to overwrite it?"));
 
 			if (overwrite) {
-				_session->save_template (name, desc, true);
+				_session->save_template (name, desc);
 			}
 			else {
 				d->show ();
@@ -3118,7 +3119,7 @@ ARDOUR_UI::save_template ()
 	}
 
 	const std::string desc = SessionMetadata::Metadata()->description ();
-	SaveTemplateDialog* d = new SaveTemplateDialog (_session->name (), desc);
+	SaveTemplateDialog* d = new SaveTemplateDialog (_session->name (), desc, false);
 	d->signal_response().connect (sigc::bind (sigc::mem_fun (*this, &ARDOUR_UI::save_template_dialog_response), d));
 	d->show ();
 }
@@ -4327,8 +4328,11 @@ ARDOUR_UI::save_as_template_dialog_response (int response, SaveTemplateDialog* d
 	if (response == RESPONSE_ACCEPT) {
 		const string name = d->get_template_name ();
 		const string desc = d->get_description ();
-		const string path = Glib::build_filename(ARDOUR::user_route_template_directory (), name + ARDOUR::template_suffix);
+		const string dir = d->is_local () ?
+							Glib::build_filename(_session->session_directory().root_path(), route_templates_dir_name)
+							: ARDOUR::user_route_template_directory ();
 
+		const string path = Glib::build_filename(dir, name + ARDOUR::template_suffix);
 		if (Glib::file_test (path, Glib::FILE_TEST_EXISTS)) { /* file already exists. */
 			bool overwrite = overwrite_file_dialog (*d,
 								_("Confirm Template Overwrite"),
@@ -4345,17 +4349,18 @@ ARDOUR_UI::save_as_template_dialog_response (int response, SaveTemplateDialog* d
 		RouteList rl = editor->get_selection().tracks.routelist();
 		snapshot.snap(rl);
 		snapshot.set_label(name);
-		snapshot.write(ARDOUR::user_route_template_directory());
-//		_route->save_as_template (path, name, desc);  //ToDo:  operate on selected routes
+		snapshot.write(dir);
 	}
 
 	delete d;
 }
 
 void
-ARDOUR_UI::save_route_template ()
+ARDOUR_UI::save_route_template (bool local)
 {
-	const std::string dir = ARDOUR::user_route_template_directory ();
+	const string dir = local ?
+						Glib::build_filename(_session->session_directory().root_path(), route_templates_dir_name)
+						: ARDOUR::user_route_template_directory ();
 
 	if (g_mkdir_with_parents (dir.c_str(), 0755)) {
 		error << string_compose (_("Cannot create route template directory %1"), dir) << endmsg;
@@ -4369,7 +4374,7 @@ ARDOUR_UI::save_route_template ()
 		//comment = route->comment();
 	}
 	
-	SaveTemplateDialog* d = new SaveTemplateDialog (name, comment);
+	SaveTemplateDialog* d = new SaveTemplateDialog (name, comment, local);
 	d->signal_response().connect (sigc::bind (sigc::mem_fun (*this, &ARDOUR_UI::save_as_template_dialog_response), d));
 	d->show ();
 }
