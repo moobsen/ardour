@@ -33,10 +33,18 @@ TransportFSM::start_playback (TransportFSM::start_transport const& p)
 }
 
 void
-TransportFSM::stop_playback (TransportFSM::stop_transport const& s)
+TransportFSM::start_stopping (TransportFSM::stop_transport const &s)
+{
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::start_stopping\n");
+	_last_stop = s;
+	api->start_stopping ();
+}
+
+void
+TransportFSM::stop_playback (TransportFSM::declick_done const& /*ignored*/)
 {
 	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::stop_playback\n");
-	api->stop_transport (s.abort, s.clear_state);
+	api->stop_transport (_last_stop.abort, _last_stop.clear_state);
 }
 
 void
@@ -44,14 +52,13 @@ TransportFSM::save_locate_and_stop (TransportFSM::locate const & l)
 {
 	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::save_locate_and_stop\n");
 	_last_locate = l;
-	stop_playback (stop_transport());
+	start_stopping (stop_transport (false, false));
 }
 
 void
 TransportFSM::start_locate (TransportFSM::locate const& l)
 {
 	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::start_locate\n");
-	_last_locate = l;
 	api->locate (l.target, l.with_roll, l.with_flush, l.with_loop, l.force);
 }
 

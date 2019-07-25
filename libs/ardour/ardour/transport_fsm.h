@@ -76,12 +76,13 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	void start_playback (start_transport const& p);
 	void roll_after_locate (locate_done const& p);
-	void stop_playback (stop_transport const& s);
+	void stop_playback (declick_done const& s);
 	void start_locate (locate const& s);
 	void start_saved_locate (declick_done const& s);
 	void interrupt_locate (locate const& s);
 	void schedule_butler_for_transport_work (butler_required const&);
 	void save_locate_and_stop (locate const &);
+	void start_stopping (stop_transport const &);
 
 	/* guards */
 
@@ -157,14 +158,12 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 		//    +----------------------+----------------+------------------+---------------------+----------------------+
 		a_row < Stopped,             start_transport, Rolling,           &T::start_playback                                      >,
 		_row  < Stopped,             stop_transport,  Stopped                                                                    >,
-		a_row < Stopped,             butler_required, WaitingForButler,  &T::schedule_butler_for_transport_work                  >,
-		_row  < Stopped,             butler_done,     Stopped                                                                    >,
 		a_row < Stopped,             locate,          WaitingForLocate,  &T::start_locate                                        >,
 		g_row < WaitingForLocate,    locate_done,     Stopped,                                  &T::should_not_roll_after_locate >,
 		_row  < Rolling,             butler_done,     Rolling                                                                    >,
 		_row  < Rolling,             start_transport, Rolling                                                                    >,
-		a_row < Rolling,             stop_transport,  DeclickToStop,     &T::stop_playback                                       >,
-		_row  < DeclickToStop,       declick_done,    Stopped                                                                    >,
+		a_row < Rolling,             stop_transport,  DeclickToStop,     &T::start_stopping                                      >,
+		a_row < DeclickToStop,       declick_done,    Stopped,           &T::stop_playback                                       >,
 		a_row < Rolling,             locate,          DeclickToLocate,   &T::save_locate_and_stop                                >,
 		a_row < DeclickToLocate,     declick_done,    WaitingForLocate,  &T::start_saved_locate                                  >,
 		row   < WaitingForLocate,    locate_done,     Rolling,           &T::roll_after_locate, &T::should_roll_after_locate     >,
@@ -189,7 +188,8 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 
 	typedef int activate_deferred_events;
 
-	locate _last_locate;
+	locate         _last_locate;
+	stop_transport _last_stop;
 
 	TransportAPI* api;
 

@@ -74,7 +74,7 @@ Session::process (pframes_t nframes)
 	}
 
 	if (non_realtime_work_pending()) {
-		DEBUG_TRACE (DEBUG::Butler, "non-realtime work pending\n");
+		DEBUG_TRACE (DEBUG::Butler, string_compose ("non-realtime work pending: %1\n", enum_2_string (post_transport_work())));
 		if (!_butler->transport_work_requested ()) {
 			DEBUG_TRACE (DEBUG::Butler, string_compose ("done, waiting? %1\n", was_waiting_on_butler));
 			butler_completed_transport_work ();

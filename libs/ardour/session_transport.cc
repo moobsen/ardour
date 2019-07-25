@@ -82,21 +82,22 @@ using namespace PBD;
  * ****************************************************************************/
 
 void
+Session::start_stopping ()
+{
+	/* assume that when we start, we'll be moving forwards */
+	DEBUG_TRACE (DEBUG::Transport, string_compose ("starting to stop @ %1 with speed %2\n", _transport_sample, _transport_speed));
+	_transport_speed = 0;
+}
+
+void
 Session::realtime_stop (bool abort, bool clear_state)
 {
 	ENSURE_PROCESS_THREAD;
 
-	DEBUG_TRACE (DEBUG::Transport, string_compose ("realtime stop @ %1\n", _transport_sample));
+	DEBUG_TRACE (DEBUG::Transport, string_compose ("realtime stop @ %1 speed = %2\n", _transport_sample, _transport_speed));
 	PostTransportWork todo = PostTransportWork (0);
 
-	/* assume that when we start, we'll be moving forwards */
-
-	if (_transport_speed < 0.0f) {
-		todo = (PostTransportWork (todo | PostTransportStop | PostTransportReverse));
-		_default_transport_speed = 1.0;
-	} else {
-		todo = PostTransportWork (todo | PostTransportStop);
-	}
+	assert (_transport_speed == 0);
 
 	/* call routes */
 
@@ -141,7 +142,6 @@ Session::realtime_stop (bool abort, bool clear_state)
 
 	reset_slave_state ();
 
-	_transport_speed = 0;
 	_target_transport_speed = 0;
 	_engine_speed = 1.0;
 
@@ -609,10 +609,6 @@ Session::stop_transport (bool abort, bool clear_state)
 	ENSURE_PROCESS_THREAD;
 
 	_count_in_once = false;
-
-	if (_transport_speed == 0.0f) {
-		return;
-	}
 
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("time to actually stop with TS @ %1\n", _transport_sample));
 
