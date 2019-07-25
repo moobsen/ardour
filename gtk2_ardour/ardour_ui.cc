@@ -4346,7 +4346,7 @@ ARDOUR_UI::save_as_template_dialog_response (int response, SaveTemplateDialog* d
 }
 
 void
-ARDOUR_UI::save_as_template ()
+ARDOUR_UI::save_route_template ()
 {
 	const std::string dir = ARDOUR::user_route_template_directory ();
 
@@ -4365,6 +4365,16 @@ ARDOUR_UI::save_as_template ()
 	SaveTemplateDialog* d = new SaveTemplateDialog (name, comment);
 	d->signal_response().connect (sigc::bind (sigc::mem_fun (*this, &ARDOUR_UI::save_as_template_dialog_response), d));
 	d->show ();
+}
+
+void
+ARDOUR_UI::apply_route_template ()
+{
+}
+
+void
+ARDOUR_UI::new_from_route_template ()
+{
 }
 
 void
