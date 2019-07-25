@@ -1704,17 +1704,6 @@ MixerStrip::build_route_ops_menu ()
 		items.push_back (SeparatorElem());
 	}
 
-	if (!_route->is_master()
-#ifdef MIXBUS
-			&& !_route->mixbus()
-#endif
-			) {
-		if (Profile->get_mixbus()) {
-			items.push_back (SeparatorElem());
-		}
-		items.push_back (MenuElem (_("Save As Template..."), sigc::mem_fun(*this, &RouteUI::save_as_template)));
-	}
-
 	if (!Profile->get_mixbus()) {
 		items.push_back (MenuElem (_("Rename..."), sigc::mem_fun(*this, &RouteUI::route_rename)));
 		/* do not allow rename if the track is record-enabled */

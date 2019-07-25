@@ -4322,6 +4322,52 @@ ARDOUR_UI::translate_order (RouteDialogs::InsertAt place)
 }
 
 void
+ARDOUR_UI::save_as_template_dialog_response (int response, SaveTemplateDialog* d)
+{
+	if (response == RESPONSE_ACCEPT) {
+		const string name = d->get_template_name ();
+		const string desc = d->get_description ();
+		const string path = Glib::build_filename(ARDOUR::user_route_template_directory (), name + ARDOUR::template_suffix);
+
+		if (Glib::file_test (path, Glib::FILE_TEST_EXISTS)) { /* file already exists. */
+			bool overwrite = overwrite_file_dialog (*d,
+								_("Confirm Template Overwrite"),
+								_("A template already exists with that name. Do you want to overwrite it?"));
+
+			if (!overwrite) {
+				d->show ();
+				return;
+			}
+		}
+//		_route->save_as_template (path, name, desc);  //ToDo:  operate on selected routes
+	}
+
+	delete d;
+}
+
+void
+ARDOUR_UI::save_as_template ()
+{
+	const std::string dir = ARDOUR::user_route_template_directory ();
+
+	if (g_mkdir_with_parents (dir.c_str(), 0755)) {
+		error << string_compose (_("Cannot create route template directory %1"), dir) << endmsg;
+		return;
+	}
+	
+	std::string name;
+	std::string comment;
+	if ( false /*only one route selected)*/ ) {
+		//name = route->name();
+		//comment = route->comment();
+	}
+	
+	SaveTemplateDialog* d = new SaveTemplateDialog (name, comment);
+	d->signal_response().connect (sigc::bind (sigc::mem_fun (*this, &ARDOUR_UI::save_as_template_dialog_response), d));
+	d->show ();
+}
+
+void
 ARDOUR_UI::start_duplicate_routes ()
 {
 	if (!duplicate_routes_dialog) {

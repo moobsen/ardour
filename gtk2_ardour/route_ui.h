@@ -247,8 +247,6 @@ public:
 	virtual void map_frozen ();
 
 	void adjust_latency ();
-	void save_as_template_dialog_response (int response, SaveTemplateDialog* d);
-	void save_as_template ();
 
 	static Gtkmm2ext::ActiveState solo_active_state (boost::shared_ptr<ARDOUR::Stripable>);
 	static Gtkmm2ext::ActiveState solo_isolate_active_state (boost::shared_ptr<ARDOUR::Stripable>);
