@@ -4339,6 +4339,13 @@ ARDOUR_UI::save_as_template_dialog_response (int response, SaveTemplateDialog* d
 				return;
 			}
 		}
+
+		//new stuff
+		MixerSnapshot snapshot = MixerSnapshot(_session);
+		RouteList rl = editor->get_selection().tracks.routelist();
+		snapshot.snap(rl);
+		snapshot.set_label(name);
+		snapshot.write(ARDOUR::user_route_template_directory());
 //		_route->save_as_template (path, name, desc);  //ToDo:  operate on selected routes
 	}
 
