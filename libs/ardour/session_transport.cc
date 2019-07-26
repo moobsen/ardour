@@ -158,17 +158,6 @@ Session::realtime_stop (bool abort, bool clear_state)
 }
 
 void
-Session::realtime_locate ()
-{
-	ENSURE_PROCESS_THREAD;
-
-	boost::shared_ptr<RouteList> r = routes.reader ();
-	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
-		(*i)->realtime_locate ();
-	}
-}
-
-void
 Session::locate (samplepos_t target_sample, bool with_roll, bool with_flush, bool for_loop_enabled, bool force, bool with_mmc)
 {
 	ENSURE_PROCESS_THREAD;
@@ -220,6 +209,9 @@ Session::do_locate (samplepos_t target_sample, bool with_roll, bool with_flush, 
 	ENSURE_PROCESS_THREAD;
 
 	bool need_butler = false;
+
+	assert (_transport_speed == 0);
+	aassert (_transport_fsm->locating());
 
 	/* Locates for seamless looping are fairly different from other
 	 * locates. They assume that the diskstream buffers for each track
@@ -275,11 +267,18 @@ Session::do_locate (samplepos_t target_sample, bool with_roll, bool with_flush, 
 	    !with_roll &&
 	    !(synced_to_engine() && play_loop) &&
 	    (!Profile->get_trx() || !(config.get_external_sync() && !synced_to_engine()))) {
+
 		realtime_stop (false, true); // XXX paul - check if the 2nd arg is really correct
 		transport_was_stopped = true;
+
 	} else {
-		/* otherwise tell the world that we located */
-		realtime_locate ();
+
+		/* Tell all routes to do the RT part of locate */
+
+		boost::shared_ptr<RouteList> r = routes.reader ();
+		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
+			(*i)->realtime_locate ();
+		}
 	}
 
 	if (force || !for_loop_enabled || loop_changing) {

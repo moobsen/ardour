@@ -33,7 +33,7 @@ TransportFSM::start_playback (TransportFSM::start_transport const& p)
 }
 
 void
-TransportFSM::start_stopping (TransportFSM::stop_transport const &s)
+TransportFSM::start_declick (TransportFSM::stop_transport const &s)
 {
 	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::start_stopping\n");
 	_last_stop = s;
@@ -48,11 +48,11 @@ TransportFSM::stop_playback (TransportFSM::declick_done const& /*ignored*/)
 }
 
 void
-TransportFSM::save_locate_and_stop (TransportFSM::locate const & l)
+TransportFSM::save_locate_and_start_declick (TransportFSM::locate const & l)
 {
 	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::save_locate_and_stop\n");
 	_last_locate = l;
-	start_stopping (stop_transport (false, false));
+	start_declick (stop_transport (false, false));
 }
 
 void
