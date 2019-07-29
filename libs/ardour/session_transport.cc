@@ -211,7 +211,7 @@ Session::do_locate (samplepos_t target_sample, bool with_roll, bool with_flush, 
 	bool need_butler = false;
 
 	assert (_transport_speed == 0);
-	aassert (_transport_fsm->locating());
+	assert (_transport_fsm->locating());
 
 	/* Locates for seamless looping are fairly different from other
 	 * locates. They assume that the diskstream buffers for each track
