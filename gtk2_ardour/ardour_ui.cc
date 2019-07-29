@@ -95,6 +95,7 @@
 #include "ardour/ltc_file_reader.h"
 #include "ardour/monitor_control.h"
 #include "ardour/midi_track.h"
+#include "ardour/mixer_snapshot_manager.h"
 #include "ardour/port.h"
 #include "ardour/plugin_manager.h"
 #include "ardour/process_thread.h"
@@ -356,7 +357,6 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[], const char* localedir)
 		/* configuration was modified, exit immediately */
 		_exit (EXIT_SUCCESS);
 	}
-
 
 	if (string (VERSIONSTRING).find (".pre") != string::npos) {
 		/* check this is not being run from ./ardev etc. */
@@ -4343,13 +4343,9 @@ ARDOUR_UI::save_as_template_dialog_response (int response, SaveTemplateDialog* d
 				return;
 			}
 		}
-
-		//new stuff
-		MixerSnapshot snapshot = MixerSnapshot(_session);
+		
 		RouteList rl = editor->get_selection().tracks.routelist();
-		snapshot.snap(rl);
-		snapshot.set_label(name);
-		snapshot.write(dir);
+		_session->snapshot_manager().create_snapshot(name, rl, true);
 	}
 
 	delete d;
