@@ -764,6 +764,7 @@ void
 Session::schedule_butler_for_transport_work ()
 {
 	was_waiting_on_butler = true;
+	DEBUG_TRACE (DEBUG::Butler, "summon butler for transport work\n");
 	_butler->schedule_transport_work ();
 }
 
