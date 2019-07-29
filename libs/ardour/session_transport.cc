@@ -99,6 +99,14 @@ Session::realtime_stop (bool abort, bool clear_state)
 
 	assert (_transport_speed == 0);
 
+	if (_last_transport_speed < 0.0f) {
+		todo = (PostTransportWork (todo | PostTransportStop | PostTransportReverse));
+		_default_transport_speed = 1.0;
+	} else {
+		todo = PostTransportWork (todo | PostTransportStop);
+	}
+
+
 	/* call routes */
 
 	boost::shared_ptr<RouteList> r = routes.reader ();
