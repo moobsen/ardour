@@ -51,7 +51,7 @@ Sample* DiskReader::_sum_buffer = 0;
 Sample* DiskReader::_mixdown_buffer = 0;
 gain_t* DiskReader::_gain_buffer = 0;
 samplecnt_t DiskReader::midi_readahead = 4096;
-bool DiskReader::_no_disk_output = false;
+gint DiskReader::_no_disk_output (0);
 
 DiskReader::DiskReader (Session& s, string const & str, DiskIOProcessor::Flag f)
 	: DiskIOProcessor (s, str, f)
@@ -348,7 +348,7 @@ DiskReader::run (BufferSet& bufs, samplepos_t start_sample, samplepos_t end_samp
 				if (can_internal_playback_seek (start_sample - playback_sample)) {
 					internal_playback_seek (start_sample - playback_sample);
 				} else {
-					cerr << owner()->name() << " playback not possible: ss = " << start_sample << " ps = " << playback_sample << endl;
+					cerr << owner()->name() << " playback at " << speed << " not possible: ss = " << start_sample << " ps = " << playback_sample << endl;
 					abort (); // XXX -- now what?
 					/*NOTREACHED*/
 				}
@@ -1417,16 +1417,19 @@ DiskReader::refill_midi ()
 }
 
 void
-DiskReader::set_no_disk_output (bool yn)
+DiskReader::dec_no_disk_output ()
 {
-	/* this MUST be called as part of the process call tree, before any
-	   disk readers are invoked. We use it when the session needs the
-	   transport (and thus effective read position for DiskReaders) to keep
-	   advancing as part of syncing up with a transport master, but we
-	   don't want any actual disk output yet because we are still not
-	   synced.
-	*/
-	_no_disk_output = yn;
+	do {
+		gint v  = g_atomic_int_get (&_no_disk_output);
+		if (v > 0) {
+			if (g_atomic_int_compare_and_exchange (&_no_disk_output, v, v - 1)) {
+				break; 
+			}
+		} else {
+			std::cerr << "\n\n\nattempt to dec no-disk-output with current = " << v << std::endl;
+			break;
+		}
+	} while (true);
 }
 
 DiskReader::DeclickAmp::DeclickAmp (samplecnt_t sample_rate)

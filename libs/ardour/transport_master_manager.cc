@@ -106,7 +106,7 @@ TransportMasterManager::parameter_changed (std::string const & what)
 	if (what == "external-sync") {
 		if (!_session->config.get_external_sync()) {
 			/* disabled */
-			DiskReader::set_no_disk_output (false);
+			DiskReader::dec_no_disk_output ();
 		}
 	}
 }
@@ -220,12 +220,12 @@ TransportMasterManager::pre_process_transport_masters (pframes_t nframes, sample
 				if (!_session->actively_recording()) {
 					DEBUG_TRACE (DEBUG::Slave, string_compose ("slave delta %1 greater than slave resolution %2 => no disk output\n", delta, _current_master->resolution()));
 					/* run routes as normal, but no disk output */
-					DiskReader::set_no_disk_output (true);
+					DiskReader::inc_no_disk_output ();
 				} else {
-					DiskReader::set_no_disk_output (false);
+					DiskReader::dec_no_disk_output ();
 				}
 			} else {
-				DiskReader::set_no_disk_output (false);
+				DiskReader::dec_no_disk_output ();
 			}
 
 			/* inject DLL with new data */

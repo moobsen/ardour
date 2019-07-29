@@ -1094,7 +1094,7 @@ Session::follow_transport_master (pframes_t nframes)
 	 */
 
 	if (!actively_recording() && abs (delta) > (5 * current_block_size)) {
-		DiskReader::set_no_disk_output (true);
+		DiskReader::inc_no_disk_output ();
 		if (!_transport_fsm->locating()) {
 			DEBUG_TRACE (DEBUG::Slave, string_compose ("request locate to master position %1\n", slave_transport_sample));
 			TFSM_EVENT (TransportFSM::locate (slave_transport_sample, true, true, false, false));
@@ -1121,12 +1121,12 @@ Session::follow_transport_master (pframes_t nframes)
 
 	if (!actively_recording() && abs (delta) > tmm.current()->resolution()) {
 		/* just varispeed to chase the master, and be silent till we're synced */
-		DiskReader::set_no_disk_output (true);
+		DiskReader::inc_no_disk_output ();
 		return true;
 	}
 
 	/* speed is set, we're locked, and good to go */
-	DiskReader::set_no_disk_output (false);
+	DiskReader::dec_no_disk_output ();
 	return true;
 
   noroll:
@@ -1140,5 +1140,5 @@ void
 Session::reset_slave_state ()
 {
 	transport_master_tracking_state = Stopped;
-	DiskReader::set_no_disk_output (false);
+	DiskReader::dec_no_disk_output ();
 }
