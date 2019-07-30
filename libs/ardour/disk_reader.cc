@@ -355,7 +355,7 @@ DiskReader::run (BufferSet& bufs, samplepos_t start_sample, samplepos_t end_samp
 				}
 			}
 
-			if (speed != 0.0) {
+			if (!declick_out) {
 				const samplecnt_t total = chaninfo->rbuf->read (disk_buf.data(), disk_samples_to_consume);
 				if (disk_samples_to_consume > total) {
 					cerr << _name << " Need " << disk_samples_to_consume << " total = " << total << endl;
