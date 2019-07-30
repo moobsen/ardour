@@ -1427,8 +1427,6 @@ DiskReader::dec_no_disk_output ()
 				break; 
 			}
 		} else {
-			std::cerr << "\n\n\nattempt to dec no-disk-output with current = " << v << std::endl;
-			PBD::stacktrace (std::cerr, 20);
 			break;
 		}
 	} while (true);
