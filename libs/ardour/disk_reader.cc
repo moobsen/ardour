@@ -1420,11 +1420,17 @@ DiskReader::refill_midi ()
 void
 DiskReader::dec_no_disk_output ()
 {
+	/* this is called unconditionally when things happen that ought to end
+	   a period of "no disk output". It's OK for that to happen when there
+	   was no corresponding call to ::inc_no_disk_output(), but we must
+	   stop the value from becoming negative.
+	*/
+
 	do {
 		gint v  = g_atomic_int_get (&_no_disk_output);
 		if (v > 0) {
 			if (g_atomic_int_compare_and_exchange (&_no_disk_output, v, v - 1)) {
-				break; 
+				break;
 			}
 		} else {
 			break;
