@@ -52,6 +52,7 @@ Sample* DiskReader::_mixdown_buffer = 0;
 gain_t* DiskReader::_gain_buffer = 0;
 samplecnt_t DiskReader::midi_readahead = 4096;
 gint DiskReader::_no_disk_output (0);
+bool DiskReader::declick_out (false);
 
 DiskReader::DiskReader (Session& s, string const & str, DiskIOProcessor::Flag f)
 	: DiskIOProcessor (s, str, f)
@@ -262,13 +263,13 @@ DiskReader::run (BufferSet& bufs, samplepos_t start_sample, samplepos_t end_samp
 		}
 	}
 
-	const gain_t target_gain = (speed == 0.0 || ((ms & MonitoringDisk) == 0)) ? 0.0 : 1.0;
+	const gain_t target_gain = (declick_out || ((ms & MonitoringDisk) == 0)) ? 0.0 : 1.0;
 
 	if (!_session.cfg ()->get_use_transport_fades ()) {
 		_declick_amp.set_gain (target_gain);
 	}
 
-	if ((speed == 0.0) && (ms == MonitoringDisk) && _declick_amp.gain () == target_gain) {
+	if (declick_out && (ms == MonitoringDisk) && _declick_amp.gain () == target_gain) {
 		/* no channels, or stopped. Don't accidentally pass any data
 		 * from disk into our outputs (e.g. via interpolation)
 		 */
@@ -1427,6 +1428,7 @@ DiskReader::dec_no_disk_output ()
 			}
 		} else {
 			std::cerr << "\n\n\nattempt to dec no-disk-output with current = " << v << std::endl;
+			PBD::stacktrace (std::cerr, 20);
 			break;
 		}
 	} while (true);
@@ -1481,4 +1483,10 @@ DiskReader::DeclickAmp::apply_gain (AudioBuffer& buf, samplecnt_t n_samples, con
 	} else {
 		_g = g;
 	}
+}
+
+void
+DiskReader::set_declick_out (bool yn)
+{
+	declick_out = yn;
 }

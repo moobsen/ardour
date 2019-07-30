@@ -109,6 +109,8 @@ public:
 	static void dec_no_disk_output();
 	static bool no_disk_output () { return g_atomic_int_get (&_no_disk_output); }
 
+	static void set_declick_out (bool yn);
+
 protected:
 	friend class Track;
 	friend class MidiTrack;
@@ -166,6 +168,7 @@ private:
 	static samplecnt_t _chunk_samples;
 	static samplecnt_t midi_readahead;
 	static gint       _no_disk_output;
+	static bool       declick_out;
 
 	int audio_read (PBD::PlaybackBuffer<Sample>*,
 	                Sample* sum_buffer,

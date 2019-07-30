@@ -86,7 +86,7 @@ Session::start_stopping ()
 {
 	/* assume that when we start, we'll be moving forwards */
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("starting to stop @ %1 with speed %2\n", _transport_sample, _transport_speed));
-	_transport_speed = 0;
+	DiskReader::set_declick_out (true);
 }
 
 void
@@ -96,8 +96,6 @@ Session::realtime_stop (bool abort, bool clear_state)
 
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("realtime stop @ %1 speed = %2\n", _transport_sample, _transport_speed));
 	PostTransportWork todo = PostTransportWork (0);
-
-	assert (_transport_speed == 0);
 
 	if (_last_transport_speed < 0.0f) {
 		todo = (PostTransportWork (todo | PostTransportStop | PostTransportReverse));
@@ -151,6 +149,7 @@ Session::realtime_stop (bool abort, bool clear_state)
 
 	reset_slave_state ();
 
+	_transport_speed = 0;
 	_target_transport_speed = 0;
 	_engine_speed = 1.0;
 
@@ -219,7 +218,6 @@ Session::do_locate (samplepos_t target_sample, bool with_roll, bool with_flush, 
 
 	bool need_butler = false;
 
-	assert (_transport_speed == 0);
 	assert (_transport_fsm->locating());
 
 	/* Locates for seamless looping are fairly different from other

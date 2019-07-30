@@ -115,6 +115,7 @@ Session::process (pframes_t nframes)
 	}
 
 	if (!one_or_more_routes_declicking) {
+		DiskReader::set_declick_out (false);
 		if (_transport_fsm->backend()->is_flag_active<TransportFSM::DeclickInProgress>()) {
 			TFSM_EVENT (TransportFSM::declick_done());
 		}
