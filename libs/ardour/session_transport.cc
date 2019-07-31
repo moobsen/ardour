@@ -761,18 +761,17 @@ Session::butler_completed_transport_work ()
 	*/
 	set_post_transport_work (PostTransportWork (0));
 
-	if (was_waiting_on_butler) {
+	if (_transport_fsm->waiting_for_butler()) {
 		TFSM_EVENT (TransportFSM::butler_done());
 	}
 
 	DiskReader::dec_no_disk_output ();
-	was_waiting_on_butler = false;
 }
 
 void
 Session::schedule_butler_for_transport_work ()
 {
-	was_waiting_on_butler = true;
+	assert (_transport_fsm->waiting_for_butler ());
 	DEBUG_TRACE (DEBUG::Butler, "summon butler for transport work\n");
 	_butler->schedule_transport_work ();
 }

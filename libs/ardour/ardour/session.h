@@ -2075,7 +2075,6 @@ private:
 	CoreSelection* _selection;
 
 	bool _global_locate_pending;
-	bool was_waiting_on_butler;
 };
 
 

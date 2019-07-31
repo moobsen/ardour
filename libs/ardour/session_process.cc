@@ -76,7 +76,7 @@ Session::process (pframes_t nframes)
 	if (non_realtime_work_pending()) {
 		DEBUG_TRACE (DEBUG::Butler, string_compose ("non-realtime work pending: %1\n", enum_2_string (post_transport_work())));
 		if (!_butler->transport_work_requested ()) {
-			DEBUG_TRACE (DEBUG::Butler, string_compose ("done, waiting? %1\n", was_waiting_on_butler));
+			DEBUG_TRACE (DEBUG::Butler, string_compose ("done, waiting? %1\n", _transport_fsm->waiting_for_butler()));
 			butler_completed_transport_work ();
 		} else {
 			DEBUG_TRACE (DEBUG::Butler, "not done yet\n");
@@ -103,6 +103,7 @@ Session::process (pframes_t nframes)
 			one_or_more_routes_declicking = true;
 		}
 	}
+
 	if (_rt_emit_pending) {
 		if (!_rt_thread_active) {
 			emit_route_signals ();
