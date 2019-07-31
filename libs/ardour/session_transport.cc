@@ -2152,3 +2152,9 @@ Session::transport_rolling() const
 {
 	return _transport_fsm->rolling() && _count_in_samples == 0 && _remaining_latency_preroll == 0;
 }
+
+bool
+Session::locate_pending () const
+{
+	return _transport_fsm->locating();
+}

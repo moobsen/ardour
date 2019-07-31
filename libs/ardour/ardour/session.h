@@ -440,7 +440,7 @@ public:
 	void adjust_capture_buffering();
 
 	bool global_locate_pending() const { return _global_locate_pending; }
-	bool locate_pending() const { return static_cast<bool>(post_transport_work()&PostTransportLocate); }
+	bool locate_pending() const;
 	bool transport_locked () const;
 
 	int wipe ();
