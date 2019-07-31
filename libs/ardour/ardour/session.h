@@ -1222,7 +1222,6 @@ protected:
 
 	/* transport API */
 
-	void start_stopping ();
 	void locate (samplepos_t, bool with_roll, bool with_flush, bool with_loop=false, bool force=false, bool with_mmc=true);
 	void stop_transport (bool abort = false, bool clear_state = false);
 	void start_transport ();

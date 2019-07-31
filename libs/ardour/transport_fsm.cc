@@ -35,9 +35,8 @@ TransportFSM::start_playback (TransportFSM::start_transport const& p)
 void
 TransportFSM::start_declick (TransportFSM::stop_transport const &s)
 {
-	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::start_stopping\n");
+	DEBUG_TRACE (DEBUG::TransportFSMEvents, "tfsm::start_declick\n");
 	_last_stop = s;
-	api->start_stopping ();
 }
 
 void

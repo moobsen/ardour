@@ -82,13 +82,6 @@ using namespace PBD;
  * ****************************************************************************/
 
 void
-Session::start_stopping ()
-{
-	/* assume that when we start, we'll be moving forwards */
-	DEBUG_TRACE (DEBUG::Transport, string_compose ("starting to stop @ %1 with speed %2\n", _transport_sample, _transport_speed));
-}
-
-void
 Session::realtime_stop (bool abort, bool clear_state)
 {
 	ENSURE_PROCESS_THREAD;
@@ -1943,6 +1936,9 @@ Session::engine_halted ()
 	if (_butler) {
 		_butler->stop ();
 	}
+
+	_transport_fsm->backend()->stop ();
+	_transport_fsm->backend()->start();
 
 	realtime_stop (false, true);
 	non_realtime_stop (false, 0, ignored);
