@@ -1938,7 +1938,6 @@ Session::engine_halted ()
 	}
 
 	_transport_fsm->backend()->stop ();
-	_transport_fsm->backend()->start();
 
 	realtime_stop (false, true);
 	non_realtime_stop (false, 0, ignored);
