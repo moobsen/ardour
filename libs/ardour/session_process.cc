@@ -169,6 +169,8 @@ Session::no_roll (pframes_t nframes)
 		(*i)->automation_run (_transport_sample, nframes);
 	}
 
+	_global_locate_pending = _transport_fsm->locating ();
+
 	if (_process_graph) {
 		DEBUG_TRACE(DEBUG::ProcessThreads,"calling graph/no-roll\n");
 		_process_graph->routes_no_roll( nframes, _transport_sample, end_sample, non_realtime_work_pending());
@@ -209,7 +211,7 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 		(*i)->automation_run (start_sample, nframes);
 	}
 
-	_global_locate_pending = locate_pending ();
+	_global_locate_pending = _transport_fsm->locating ();
 
 	if (_process_graph) {
 		DEBUG_TRACE(DEBUG::ProcessThreads,"calling graph/process-routes\n");
