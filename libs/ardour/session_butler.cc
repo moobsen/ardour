@@ -22,6 +22,7 @@
 #include "pbd/stacktrace.h"
 
 #include "ardour/butler.h"
+#include "ardour/disk_reader.h"
 #include "ardour/route.h"
 #include "ardour/session.h"
 #include "ardour/session_event.h"
@@ -58,6 +59,7 @@ void
 Session::schedule_playback_buffering_adjustment ()
 {
 	add_post_transport_work (PostTransportAdjustPlaybackBuffering);
+	DiskReader::inc_no_disk_output ();
 	_butler->schedule_transport_work ();
 }
 

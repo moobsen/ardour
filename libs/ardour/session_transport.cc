@@ -755,6 +755,11 @@ Session::butler_completed_transport_work ()
 		TFSM_EVENT (TransportFSM::locate_done());
 	}
 
+	if (ptw & PostTransportAdjustPlaybackBuffering) {
+		/* we blocked output while this happened */
+		DiskReader::dec_no_disk_output ();
+	}
+
 	set_next_event ();
 	/* XXX is this really safe? shouldn't we just be unsetting the bits that we actually
 	   know were handled ?
