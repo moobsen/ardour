@@ -100,10 +100,9 @@ Session::realtime_stop (bool abort, bool clear_state)
 	if (_last_transport_speed < 0.0f) {
 		todo = (PostTransportWork (todo | PostTransportStop | PostTransportReverse));
 		_default_transport_speed = 1.0;
-		DiskReader::inc_no_disk_output ();
+		DiskReader::inc_no_disk_output (); // for the buffer reversal
 	} else {
 		todo = PostTransportWork (todo | PostTransportStop);
-		DiskReader::dec_no_disk_output ();
 	}
 
 	/* call routes */
@@ -567,7 +566,7 @@ Session::set_transport_speed (double speed, samplepos_t destination_sample, bool
 
 		if ((_transport_speed && speed * _transport_speed < 0.0) || (_last_transport_speed * speed < 0.0) || (_last_transport_speed == 0.0 && speed < 0.0)) {
 			todo = PostTransportWork (todo | PostTransportReverse);
-			DiskReader::inc_no_disk_output ();
+			DiskReader::inc_no_disk_output (); // for the buffer reversal
 			_last_roll_or_reversal_location = _transport_sample;
 		}
 
