@@ -127,6 +127,7 @@
 #include "ardour/template_utils.h"
 #include "ardour/tempo.h"
 #include "ardour/ticker.h"
+#include "ardour/transport_fsm.h"
 #include "ardour/transport_master_manager.h"
 #include "ardour/types_convert.h"
 #include "ardour/user_bundle.h"
@@ -410,6 +411,8 @@ Session::post_engine_init ()
 		remove_pending_capture_state ();
 		state_was_pending = false;
 	}
+
+	_transport_fsm->backend()->start ();
 
 	/* Now, finally, we can fill the playback buffers */
 

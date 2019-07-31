@@ -333,8 +333,6 @@ Session::Session (AudioEngine &eng,
 	init_name_id_counter (1); // reset for new sessions, start at 1
 	VCA::set_next_vca_number (1); // reset for new sessions, start at 1
 
-	_transport_fsm->backend()->start ();
-
 	pre_engine_init (fullpath); // sets _is_new
 
 	setup_lua ();
@@ -597,6 +595,10 @@ Session::immediately_post_engine ()
 		*/
 		_process_graph.reset (new Graph (*this));
 	}
+
+	/* Restart transport FSM */
+
+	_transport_fsm->backend()->start ();
 
 	/* every time we reconnect, recompute worst case output latencies */
 
@@ -2009,7 +2011,7 @@ void
 Session::_locations_changed (const Locations::LocationList& locations)
 {
 	/* There was some mass-change in the Locations object.
-	 * 
+	 *
 	 * We might be re-adding a location here but it doesn't actually matter
 	 * for all the locations that the Session takes an interest in.
 	 */
