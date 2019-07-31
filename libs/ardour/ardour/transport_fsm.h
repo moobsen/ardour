@@ -133,6 +133,7 @@ struct TransportFSM : public msm::front::state_machine_def<TransportFSM>
 	bool rolling ()                      { return backend()->is_flag_active<IsRolling>(); }
 	bool stopped ()                      { return backend()->is_flag_active<IsStopped>(); }
 	bool waiting_for_butler()            { return backend()->is_flag_active<IsWaitingForButler>(); }
+	bool declick_in_progress()           { return backend()->is_flag_active<DeclickInProgress>(); }
 
 	static boost::shared_ptr<back> create(TransportAPI& api) {
 

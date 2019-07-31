@@ -115,11 +115,15 @@ Session::process (pframes_t nframes)
 		}
 	}
 
-	if (!one_or_more_routes_declicking) {
-		DiskReader::set_declick_out (false);
-		if (_transport_fsm->backend()->is_flag_active<TransportFSM::DeclickInProgress>()) {
-			TFSM_EVENT (TransportFSM::declick_done());
-		}
+	/* We are checking two things here:
+	 *
+	 * 1) whether or not all tracks have finished a declick out.
+	 * 2) is the transport FSM waiting to be told this
+	 */
+
+	if (!one_or_more_routes_declicking && declick_in_progress()) {
+		/* end of the declick has been reached by all routes */
+		TFSM_EVENT (TransportFSM::declick_done());
 	}
 
 	_engine.main_thread()->drop_buffers ();

@@ -441,6 +441,7 @@ public:
 
 	bool global_locate_pending() const { return _global_locate_pending; }
 	bool locate_pending() const;
+	bool declick_in_progress () const;
 	bool transport_locked () const;
 
 	int wipe ();
@@ -1663,7 +1664,6 @@ private:
 	int           start_midi_thread ();
 
 	bool should_ignore_transport_request (TransportRequestSource, TransportRequestType) const;
-	bool declick_in_progress () const;
 
 	void set_play_loop (bool yn, double speed);
 	void unset_play_loop ();

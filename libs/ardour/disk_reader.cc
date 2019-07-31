@@ -52,7 +52,6 @@ Sample* DiskReader::_mixdown_buffer = 0;
 gain_t* DiskReader::_gain_buffer = 0;
 samplecnt_t DiskReader::midi_readahead = 4096;
 gint DiskReader::_no_disk_output (0);
-bool DiskReader::declick_out (false);
 
 DiskReader::DiskReader (Session& s, string const & str, DiskIOProcessor::Flag f)
 	: DiskIOProcessor (s, str, f)
@@ -263,6 +262,7 @@ DiskReader::run (BufferSet& bufs, samplepos_t start_sample, samplepos_t end_samp
 		}
 	}
 
+	const bool declick_out = _session.declick_in_progress();
 	const gain_t target_gain = (declick_out || ((ms & MonitoringDisk) == 0)) ? 0.0 : 1.0;
 
 	if (!_session.cfg ()->get_use_transport_fades ()) {
@@ -1487,10 +1487,4 @@ DiskReader::DeclickAmp::apply_gain (AudioBuffer& buf, samplecnt_t n_samples, con
 	} else {
 		_g = g;
 	}
-}
-
-void
-DiskReader::set_declick_out (bool yn)
-{
-	declick_out = yn;
 }

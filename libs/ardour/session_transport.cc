@@ -86,7 +86,6 @@ Session::start_stopping ()
 {
 	/* assume that when we start, we'll be moving forwards */
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("starting to stop @ %1 with speed %2\n", _transport_sample, _transport_speed));
-	DiskReader::set_declick_out (true);
 }
 
 void
@@ -1347,18 +1346,6 @@ Session::non_realtime_overwrite (int on_entry, bool& finished)
 	}
 }
 
-bool
-Session::declick_in_progress () const
-{
-	boost::shared_ptr<RouteList> rl = routes.reader();
-	for (RouteList::iterator i = rl->begin(); i != rl->end(); ++i) {
-		if ((*i)->declick_in_progress ()) {
-			return true;
-		}
-	}
-	return false;
-}
-
 void
 Session::non_realtime_locate ()
 {
@@ -2160,4 +2147,10 @@ bool
 Session::locate_pending () const
 {
 	return _transport_fsm->locating();
+}
+
+bool
+Session::declick_in_progress () const
+{
+	return _transport_fsm->declick_in_progress();
 }
