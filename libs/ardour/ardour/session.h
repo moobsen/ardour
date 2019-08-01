@@ -1681,6 +1681,7 @@ private:
 	void non_realtime_stop (bool abort, int entry_request_count, bool& finished);
 	void non_realtime_overwrite (int entry_request_count, bool& finished);
 	void engine_halted ();
+	void engine_running ();
 	void xrun_recovery ();
 	void set_track_loop (bool);
 	bool select_playhead_priority_target (samplepos_t&);

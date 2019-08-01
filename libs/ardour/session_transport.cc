@@ -1946,6 +1946,12 @@ Session::engine_halted ()
 	TransportStateChange (); /* EMIT SIGNAL */
 }
 
+void
+Session::engine_running ()
+{
+	initialize_latencies ();
+	_transport_fsm->backend()->start ();
+}
 
 void
 Session::xrun_recovery ()

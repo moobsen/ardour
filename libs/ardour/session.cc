@@ -600,9 +600,9 @@ Session::immediately_post_engine ()
 
 	_transport_fsm->backend()->start ();
 
-	/* every time we reconnect, recompute worst case output latencies */
+	/* every time we reconnect, do stuff ... */
 
-	_engine.Running.connect_same_thread (*this, boost::bind (&Session::initialize_latencies, this));
+	_engine.Running.connect_same_thread (*this, boost::bind (&Session::engine_running, this));
 
 	if (synced_to_engine()) {
 		_engine.transport_stop ();
