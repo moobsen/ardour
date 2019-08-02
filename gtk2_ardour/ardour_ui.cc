@@ -4385,14 +4385,16 @@ ARDOUR_UI::apply_route_template ()
 	
 	template_picker.set_size_request(800, 400);
 	template_picker.get_vbox()->pack_start (snapshot_list.display(), true, true);
+	template_picker.add(snapshot_list.display());
 	
 	template_picker.add_button (Stock::CANCEL, RESPONSE_CANCEL);
 	template_picker.add_button (_("Done"), RESPONSE_ACCEPT);
-	template_picker.show_all ();
+	template_picker.show_all_children ();
+	template_picker.run();
 
-	if (template_picker.run() == RESPONSE_CANCEL) {
-		return;
-	}
+	// if (template_picker.run() == RESPONSE_CANCEL) {
+	// 	return;
+	// }
 }
 
 void
