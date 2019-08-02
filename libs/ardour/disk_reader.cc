@@ -263,7 +263,7 @@ DiskReader::run (BufferSet& bufs, samplepos_t start_sample, samplepos_t end_samp
 	}
 
 	const bool declick_out = _session.declick_in_progress();
-	const gain_t target_gain = (declick_out || ((ms & MonitoringDisk) == 0)) ? 0.0 : 1.0;
+	const gain_t target_gain = (declick_out || (speed == 0.0) || ((ms & MonitoringDisk) == 0)) ? 0.0 : 1.0;
 
 	if (!_session.cfg ()->get_use_transport_fades ()) {
 		_declick_amp.set_gain (target_gain);
