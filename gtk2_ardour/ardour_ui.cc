@@ -4379,11 +4379,11 @@ ARDOUR_UI::save_route_template (bool local)
 void
 ARDOUR_UI::apply_route_template ()
 {
-	ArdourDialog template_picker (_("Pick a Mixer Template"), true);
+	ArdourDialog template_picker (_("Pick a Mixer Template"));
 	MixerSnapshotList snapshot_list (true);
 	snapshot_list.set_session(_session);
 	
-	template_picker.set_size_request(900, 800);
+	template_picker.set_size_request(800, 400);
 	template_picker.get_vbox()->pack_start (snapshot_list.display(), true, true);
 	
 	template_picker.add_button (Stock::CANCEL, RESPONSE_CANCEL);
