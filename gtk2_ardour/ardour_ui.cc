@@ -163,6 +163,7 @@ typedef uint64_t microseconds_t;
 #include "main_clock.h"
 #include "missing_file_dialog.h"
 #include "missing_plugin_dialog.h"
+#include "mixer_snapshots.h"
 #include "mixer_ui.h"
 #include "meterbridge.h"
 #include "meter_patterns.h"
@@ -4378,6 +4379,20 @@ ARDOUR_UI::save_route_template (bool local)
 void
 ARDOUR_UI::apply_route_template ()
 {
+	ArdourDialog template_picker (_("Pick a Mixer Template"), true);
+	MixerSnapshotList snapshot_list (true);
+	snapshot_list.set_session(_session);
+	
+	template_picker.set_size_request(900, 800);
+	template_picker.get_vbox()->pack_start (snapshot_list.display(), true, true);
+	
+	template_picker.add_button (Stock::CANCEL, RESPONSE_CANCEL);
+	template_picker.add_button (_("Done"), RESPONSE_ACCEPT);
+	template_picker.show_all ();
+
+	if (template_picker.run() == RESPONSE_CANCEL) {
+		return;
+	}
 }
 
 void
