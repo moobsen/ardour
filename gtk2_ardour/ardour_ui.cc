@@ -4379,22 +4379,17 @@ ARDOUR_UI::save_route_template (bool local)
 void
 ARDOUR_UI::apply_route_template ()
 {
-	ArdourDialog template_picker (_("Pick a Mixer Template"));
-	MixerSnapshotList snapshot_list (true);
-	snapshot_list.set_session(_session);
-	
-	template_picker.set_size_request(800, 400);
-	template_picker.get_vbox()->pack_start (snapshot_list.display(), true, true);
-	template_picker.add(snapshot_list.display());
-	
-	template_picker.add_button (Stock::CANCEL, RESPONSE_CANCEL);
-	template_picker.add_button (_("Done"), RESPONSE_ACCEPT);
-	template_picker.show_all_children ();
-	template_picker.run();
+	//TODO: This is clearly not the right way to handle this... both pointers are leaked
+	ArdourWindow* template_picker = new ArdourWindow(_("Pick a Mixer Template"));
 
-	// if (template_picker.run() == RESPONSE_CANCEL) {
-	// 	return;
-	// }
+	MixerSnapshotList* snapshot_list = new MixerSnapshotList(true);
+	snapshot_list->set_session(_session);
+	
+	template_picker->set_size_request(800, 400);
+	template_picker->add(snapshot_list->display());
+
+	template_picker->show_all();
+	template_picker->present();
 }
 
 void
