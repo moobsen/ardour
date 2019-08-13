@@ -163,7 +163,6 @@ typedef uint64_t microseconds_t;
 #include "main_clock.h"
 #include "missing_file_dialog.h"
 #include "missing_plugin_dialog.h"
-#include "mixer_snapshots.h"
 #include "mixer_ui.h"
 #include "meterbridge.h"
 #include "meter_patterns.h"
@@ -310,6 +309,7 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[], const char* localedir)
 	, meterbridge (0)
 	, luawindow (0)
 	, rc_option_editor (0)
+	, _template_list(0)
 	, speaker_config_window (X_("speaker-config"), _("Speaker Configuration"))
 	, add_route_dialog (X_("add-routes"), _("Add Tracks/Busses"))
 	, about (X_("about"), _("About"))
@@ -4379,17 +4379,19 @@ ARDOUR_UI::save_route_template (bool local)
 void
 ARDOUR_UI::apply_route_template ()
 {
-	//TODO: This is clearly not the right way to handle this... both pointers are leaked
-	ArdourWindow* template_picker = new ArdourWindow(_("Pick a Mixer Template"));
+	_template_picker.set_title(_("Pick a Mixer Template"));
+	_template_picker.set_size_request(800, 400);
 
-	MixerSnapshotList* snapshot_list = new MixerSnapshotList(true);
-	snapshot_list->set_session(_session);
-	
-	template_picker->set_size_request(800, 400);
-	template_picker->add(snapshot_list->display());
-
-	template_picker->show_all();
-	template_picker->present();
+	if(!_template_list) {
+		if(_session) {
+			_template_list = new MixerSnapshotList(true);
+			_template_list->set_session(_session);
+			_template_picker.add(_template_list->display());
+		}
+	}
+	_template_list->redisplay();
+	_template_picker.show_all();
+	_template_picker.present();
 }
 
 void

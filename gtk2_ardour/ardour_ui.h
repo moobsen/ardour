@@ -77,6 +77,7 @@
 #include "editing.h"
 #include "enums.h"
 #include "mini_timeline.h"
+#include "mixer_snapshots.h"
 #include "shuttle_control.h"
 #include "transport_control.h"
 #include "transport_control_ui.h"
@@ -411,6 +412,9 @@ private:
 	bool          _initial_verbose_plugin_scan;
 
 	Gtk::Menu*    _shared_popup_menu;
+
+	MixerSnapshotList* _template_list;
+	Gtk::Window _template_picker;
 
 	void hide_tabbable (ArdourWidgets::Tabbable*);
 	void detach_tabbable (ArdourWidgets::Tabbable*);
