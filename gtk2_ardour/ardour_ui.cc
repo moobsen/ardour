@@ -4347,6 +4347,9 @@ ARDOUR_UI::save_as_template_dialog_response (int response, SaveTemplateDialog* d
 		
 		RouteList rl = editor->get_selection().tracks.routelist();
 		_session->snapshot_manager().create_snapshot(name, rl, true);
+		if(_template_list) {
+			_template_list->redisplay();
+		}
 	}
 
 	delete d;
