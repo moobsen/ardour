@@ -1,0 +1,83 @@
+atk 2.14.0 apt:libatk1.0-dev
+atkmm 2.22.7
+aubio 0.3.2
+autoconf 2.69
+automake 1.14.1
+bison 3.0
+boost_1.49.0 (OSX, Linux)
+cairo 1.14.8
+cairomm 1.11.2
+cmake 2.8.12.2
+cppunit 1.13.2
+curl 7.55.1
+expat 2.1.0
+ExtUtils-MakeMaker 6.64
+fftw 3.3.8
+flac 1.3.2
+flex 2.5.35
+fontconfig 2.13.0
+freetype 2.9
+gdk-pixbuf 2.31.1
+gettext 0.19.3
+glib 2.42.0 apt:libglib2.0-dev
+glibmm 2.42.0
+gnome-common 2.34.0
+gnome-doc-utils 0.20.10
+gobject-introspection 1.38.0
+gtk-doc 1.21
+gtk-engines 2.21.0
+gtk+ 2.24.23-x11 (Linux)
+gtkmm 2.24.4
+harfbuzz 0.9.35
+intltool 0.50.2
+isodate 0.5.0
+itstool 2.0.2
+jpegsrc.v9a
+libarchive 3.2.1
+libart_lgpl 2.3.21
+libffi 3.1
+libiconv 1.14
+liblo 0.28
+libogg 1.3.2
+libpng 1.6.34
+libsamplerate 0.1.8
+libsigc++ 2.4.1
+libsndfile 1.0.28
+libtool 2.4.2
+libusb 1.0.20
+libvorbis 1.3.4
+libxml2 2.9.2
+libxslt 1.1.28
+lilv 0.24.2-38-g672e2c4
+LRDF 0.5.1-rg
+lv2 1.14.0
+m4 1.4.17
+make 4.1
+NSS-3.25 (Linux, OSX)
+NSS-PEM (Linux)
+pango 1.40.4
+pangomm 2.34.0
+pcre 8.36 apt:libpcre?
+pixman 0.34.0
+pkg-config 0.28
+raptor2 2.0.14
+rasqal 0.9.32
+rdflib 4.1.2
+readline 6.3
+redland 1.0.17
+rubberband 1.8.1
+serd 0.28.0-87-g4fa7785
+setuptools 6.1
+sord 0.16.0-30-ga44e6cc
+sratom 0.6.0-9-g86b3bad
+suil 0.8.4-13-g2f1538b
+taglib 1.9.1
+tar 1.27
+tiff 4.0.3
+util-linux 2.21 (Linux, UUID)
+uuid 1.6.2
+vamp-plugin-sdk 2.5
+XML-Parser 2.41
+XML-Simple 2.22
+xz 5.2.2
+zlib 1.2.7 apt:zlib1g-dev
